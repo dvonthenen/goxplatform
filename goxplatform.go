@@ -5,6 +5,7 @@ import (
 
 	fs "github.com/dvonthenen/goxplatform/fs"
 	inst "github.com/dvonthenen/goxplatform/inst"
+	nw "github.com/dvonthenen/goxplatform/nw"
 	run "github.com/dvonthenen/goxplatform/run"
 	sys "github.com/dvonthenen/goxplatform/sys"
 )
@@ -16,14 +17,20 @@ func init() {
 
 //NewFs generates a new Fs object
 func NewFs() *fs.Fs {
-	fs := &fs.Fs{}
-	return fs
+	myFs := &fs.Fs{}
+	return myFs
+}
+
+//NewNw generates a new Run object
+func NewNw() *nw.Nw {
+	myNw := &nw.Nw{}
+	return myNw
 }
 
 //NewRun generates a new Run object
 func NewRun() *run.Run {
-	run := &run.Run{}
-	return run
+	myRun := &run.Run{}
+	return myRun
 }
 
 //NewSys generates a new Sys object
@@ -33,6 +40,6 @@ func NewSys() *sys.Sys {
 
 //NewInst generates a new Run object
 func NewInst() *inst.Inst {
-	inst := &inst.Inst{}
-	return inst
+	myInst := &inst.Inst{}
+	return myInst
 }
