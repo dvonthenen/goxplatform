@@ -24,9 +24,38 @@ var (
 //Fs is a static class that provides Filesystem type functions
 type Fs struct{}
 
+//NewFs generates a Fs object
+func NewFs() *Fs {
+	myFs := &Fs{}
+	return myFs
+}
+
+//DoesFileExist just like it sounds
+func (fs *Fs) DoesFileExist(fullpath string) bool {
+	log.Debugln("DoesFileExist ENTER")
+	log.Debugln("fullpath:", fullpath)
+
+	sfi, err := os.Stat(fullpath)
+	if err != nil {
+		log.Debugln("Src Stat Failed:", err)
+		log.Debugln("FileCopy LEAVE")
+		return false
+	}
+	if !sfi.Mode().IsRegular() {
+		//cannot use non-regular files (e.g., directories, symlinks, devices, etc.)
+		log.Debugln("Src file is not regular")
+		log.Debugln("DoesFileExist LEAVE")
+		return false
+	}
+
+	log.Debugln("File exists")
+	log.Debugln("DoesFileExist LEAVE")
+	return true
+}
+
 //GetFullExePath returns the fullpath of the executable including the executable
 //name itself
-func (Fs) GetFullExePath() (string, error) {
+func (fs *Fs) GetFullExePath() (string, error) {
 	path, err := os.Readlink("/proc/self/exe")
 	if err != nil {
 		log.Errorln("Readlink failed:", err)
@@ -37,7 +66,7 @@ func (Fs) GetFullExePath() (string, error) {
 }
 
 //GetPathFileFullFilename returns the parent folder name
-func (Fs) GetPathFileFullFilename(path string) string {
+func (fs *Fs) GetPathFileFullFilename(path string) string {
 	log.Debugln("GetPathFileFullFilename ENTER")
 	log.Debugln("path:", path)
 	last := strings.LastIndex(path, string(filepath.Separator))
@@ -53,7 +82,7 @@ func (Fs) GetPathFileFullFilename(path string) string {
 }
 
 //GetFullPath returns the fullpath of the executable without the executable name
-func (Fs) GetFullPath() (string, error) {
+func (fs *Fs) GetFullPath() (string, error) {
 	path, err := os.Readlink("/proc/self/exe")
 	if err != nil {
 		log.Errorln("Readlink failed:", err)
@@ -61,12 +90,12 @@ func (Fs) GetFullPath() (string, error) {
 	}
 	log.Debugln("EXE path:", path)
 
-	tmp := Fs.GetPathFileFullFilename(path)
+	tmp := fs.GetPathFileFullFilename(path)
 	return tmp, nil
 }
 
 //GetFilenameFromURIOrFullPath retrieves the filename from an URI
-func (Fs) GetFilenameFromURIOrFullPath(path string) string {
+func (fs *Fs) GetFilenameFromURIOrFullPath(path string) string {
 	log.Debugln("GetFilenameFromURI ENTER")
 	log.Debugln("path:", path)
 
@@ -84,7 +113,7 @@ func (Fs) GetFilenameFromURIOrFullPath(path string) string {
 }
 
 //AppendSlash appends a slash to a path if one is needed
-func (Fs) AppendSlash(path string) string {
+func (fs *Fs) AppendSlash(path string) string {
 	log.Debugln("AppendSlash ENTER")
 	log.Debugln("path:", path)
 	if path[len(path)-1] != filepath.Separator {
@@ -96,7 +125,7 @@ func (Fs) AppendSlash(path string) string {
 }
 
 //FileCopy copies the contents of the src file to the dst file
-func (Fs) FileCopy(src string, dst string) error {
+func (fs *Fs) FileCopy(src string, dst string) error {
 	log.Debugln("FileCopy ENTER")
 	log.Debugln("SRC:", src)
 	log.Debugln("DST:", dst)

@@ -39,6 +39,12 @@ var (
 //Run is a static class that enables running and capturing command output
 type Run struct{}
 
+//NewRun generates a Run object
+func NewRun() *Run {
+	myRun := &Run{}
+	return myRun
+}
+
 //Command executes a command that monitors output for success or failure
 func (Run) Command(cmdLine string, successRegex string, failureRegex string) error {
 	log.Debugln("RunCommand ENTER")

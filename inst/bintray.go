@@ -1,4 +1,4 @@
-package bintray
+package inst
 
 import (
 	"bufio"
@@ -13,7 +13,7 @@ import (
 )
 
 //CorrectVersionFromDeb formats the version string to match dpkg info
-func CorrectVersionFromDeb(version string) string {
+func (inst *Inst) CorrectVersionFromDeb(version string) string {
 	if len(version) == 0 {
 		return ""
 	}
@@ -25,7 +25,7 @@ func CorrectVersionFromDeb(version string) string {
 }
 
 //GetVersionFromBintray grabs the version from bintray
-func GetVersionFromBintray(URI string) (string, error) {
+func (inst *Inst) GetVersionFromBintray(URI string) (string, error) {
 	log.Debugln("getRexrayVersionFromBintray ENTER")
 
 	req, err := http.NewRequest("GET", URI, nil)
@@ -89,7 +89,7 @@ func GetVersionFromBintray(URI string) (string, error) {
 		fmt.Println("highest:", highest)
 		fmt.Println("version:", version)
 
-		if IsVersionStringHigher(highest, version) {
+		if inst.IsVersionStringHigher(highest, version) {
 			log.Debugln("New highest:", highest)
 			highest = version
 		}
