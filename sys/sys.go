@@ -2,6 +2,7 @@ package sys
 
 import (
 	"errors"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	uuid "github.com/twinj/uuid"
@@ -25,6 +26,9 @@ const (
 
 	//OsCoreOs is CoreOS
 	OsCoreOs = 4
+
+	//OsMac is OSX
+	OsMac = 5
 )
 
 var (
@@ -75,11 +79,41 @@ func (sys *Sys) GetOsType() int {
 		osType = OsUbuntu
 		//	} else if sys.fs.DoesFileExist("/etc/release") {
 		//		return OsCoreOs
+	} else {
+		out, err := sys.run.CommandOutput("uname -s")
+		if err == nil && strings.EqualFold(out, "Darwin") {
+			osType = OsMac
+		} else {
+			log.Warnln("Unable to determine OS type")
+		}
 	}
 
 	log.Debugln("GetOsType =", osType)
 	log.Debugln("GetOsType LEAVE")
 	return osType
+}
+
+//GetOsStrByType gets the OS string
+func (sys *Sys) GetOsStrByType(iType int) string {
+	log.Debugln("GetOsStrByType ENTER")
+
+	osStr := "Unknown"
+	switch iType {
+	case OsRhel:
+		osStr = "RHEL"
+	case OsSuse:
+		osStr = "SUSE"
+	case OsUbuntu:
+		osStr = "Ubuntu"
+	case OsCoreOs:
+		osStr = "CoreOS"
+	case OsMac:
+		osStr = "OSX"
+	}
+
+	log.Debugln("GetOsStrByType =", osStr)
+	log.Debugln("GetOsStrByType LEAVE")
+	return osStr
 }
 
 //GetRunningKernelVersion returns the running kernel version
