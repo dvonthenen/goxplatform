@@ -7,6 +7,7 @@ import (
 	inst "github.com/dvonthenen/goxplatform/inst"
 	nw "github.com/dvonthenen/goxplatform/nw"
 	run "github.com/dvonthenen/goxplatform/run"
+	str "github.com/dvonthenen/goxplatform/str"
 	sys "github.com/dvonthenen/goxplatform/sys"
 )
 
@@ -19,6 +20,12 @@ func init() {
 func NewFs() *fs.Fs {
 	myFs := &fs.Fs{}
 	return myFs
+}
+
+//NewStr generates a new Str object
+func NewStr() *str.Str {
+	myStr := &str.Str{}
+	return myStr
 }
 
 //NewNw generates a new Run object
