@@ -16,37 +16,33 @@ func init() {
 	log.Infoln("Initializing goxplatform...")
 }
 
-//NewFs generates a new Fs object
-func NewFs() *fs.Fs {
-	myFs := &fs.Fs{}
-	return myFs
+//XPlatform is a static class that provides System related functions
+type XPlatform struct {
+	sys  *sys.Sys
+	fs   *fs.Fs
+	str  *str.Str
+	nw   *nw.Nw
+	run  *run.Run
+	inst *inst.Inst
 }
 
-//NewStr generates a new Str object
-func NewStr() *str.Str {
-	myStr := &str.Str{}
-	return myStr
-}
+//New generates a Sys object
+func New() *XPlatform {
+	mySys := sys.NewSys()
+	myFs := fs.NewFs()
+	myStr := str.NewStr()
+	myNw := nw.NewNw()
+	myRun := run.NewRun()
+	myInst := inst.NewInst()
 
-//NewNw generates a new Run object
-func NewNw() *nw.Nw {
-	myNw := &nw.Nw{}
-	return myNw
-}
+	myXPlatform := &XPlatform{
+		sys:  mySys,
+		fs:   myFs,
+		str:  myStr,
+		nw:   myNw,
+		run:  myRun,
+		inst: myInst,
+	}
 
-//NewRun generates a new Run object
-func NewRun() *run.Run {
-	myRun := &run.Run{}
-	return myRun
-}
-
-//NewSys generates a new Sys object
-func NewSys() *sys.Sys {
-	return sys.NewSys()
-}
-
-//NewInst generates a new Run object
-func NewInst() *inst.Inst {
-	myInst := &inst.Inst{}
-	return myInst
+	return myXPlatform
 }
