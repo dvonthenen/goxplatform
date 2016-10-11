@@ -18,12 +18,12 @@ func init() {
 
 //XPlatform is a static class that provides System related functions
 type XPlatform struct {
-	sys  *sys.Sys
-	fs   *fs.Fs
-	str  *str.Str
-	nw   *nw.Nw
-	run  *run.Run
-	inst *inst.Inst
+	Sys  *sys.Sys
+	Fs   *fs.Fs
+	Str  *str.Str
+	Nw   *nw.Nw
+	Run  *run.Run
+	Inst *inst.Inst
 }
 
 //New generates a Sys object
@@ -36,12 +36,12 @@ func New() *XPlatform {
 	myInst := inst.NewInst()
 
 	myXPlatform := &XPlatform{
-		sys:  mySys,
-		fs:   myFs,
-		str:  myStr,
-		nw:   myNw,
-		run:  myRun,
-		inst: myInst,
+		Sys:  mySys,
+		Fs:   myFs,
+		Str:  myStr,
+		Nw:   myNw,
+		Run:  myRun,
+		Inst: myInst,
 	}
 
 	return myXPlatform
