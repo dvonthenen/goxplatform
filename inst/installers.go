@@ -5,38 +5,85 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+
+	fs "github.com/dvonthenen/goxplatform/fs"
+	common "github.com/dvonthenen/goxplatform/inst/common"
+	deb "github.com/dvonthenen/goxplatform/inst/deb"
+	ipm "github.com/dvonthenen/goxplatform/inst/ipackagemgr"
+	sys "github.com/dvonthenen/goxplatform/sys"
 )
 
 var (
-	//ErrParseVersionFailed failed to parse version from filename
-	ErrParseVersionFailed = errors.New("Failed to parse version from filename")
+	//ErrInvalidOsType the OS is not valid
+	ErrInvalidOsType = errors.New("Invalid OS Type")
 )
 
 //Inst is a static class that captures install package rules
-type Inst struct{}
+type Inst struct {
+	fs  *fs.Fs
+	sys *sys.Sys
+	ipm ipm.IPackageMgr
+}
+
+//NewInst generates a Inst object
+func NewInst() *Inst {
+	myFs := fs.NewFs()
+	mySys := sys.NewSys()
+
+	var myIpm ipm.IPackageMgr
+	switch mySys.GetOsType() {
+	case sys.OsUbuntu:
+		myIpm = deb.NewDeb()
+	}
+
+	myInst := &Inst{
+		fs:  myFs,
+		sys: mySys,
+		ipm: myIpm,
+	}
+
+	return myInst
+}
+
+//IsInstalled is the package installed
+func (inst *Inst) IsInstalled(packageName string) error {
+	if inst.ipm == nil {
+		return ErrInvalidOsType
+	}
+
+	return inst.ipm.IsInstalled(packageName)
+}
+
+//GetInstalledVersion get the installed version of the package
+func (inst *Inst) GetInstalledVersion(packageName string, parseVersion bool) (string, error) {
+	if inst.ipm == nil {
+		return "", ErrInvalidOsType
+	}
+
+	return inst.ipm.GetInstalledVersion(packageName, parseVersion)
+}
 
 //DownloadPackage downloads a payload specified by the URI and
 //returns the local path for where the bits land
-func (Inst) DownloadPackage(installPackageURI string) (string, error) {
+func (inst *Inst) DownloadPackage(installPackageURI string) (string, error) {
 	log.Infoln("downloadPackage ENTER")
 	log.Infoln("installPackageURI=", installPackageURI)
 
-	path, err := GetFullPath()
+	path, err := inst.fs.GetFullPath()
 	if err != nil {
 		log.Errorln("GetFullPath Failed:", err)
 		log.Infoln("downloadPackage LEAVE")
 		return "", err
 	}
 
-	filename := GetFilenameFromURIOrFullPath(installPackageURI)
+	filename := inst.fs.GetFilenameFromURIOrFullPath(installPackageURI)
 	log.Infoln("Filename:", filename)
 
-	fullpath := AppendSlash(path) + filename
+	fullpath := inst.fs.AppendSlash(path) + filename
 	log.Infoln("Fullpath:", fullpath)
 
 	//create a downloaded file
@@ -69,35 +116,13 @@ func (Inst) DownloadPackage(installPackageURI string) (string, error) {
 	return fullpath, nil
 }
 
-//ParseVersionFromFilename this parses the version string out of the
-//DEBs filename
-func (Inst) ParseVersionFromFilename(filename string) (string, error) {
-	log.Debugln("ParseVersionFromFilename ENTER")
-	log.Debugln("filename:", filename)
-
-	r, err := regexp.Compile(".*([0-9]+\\.[0-9]+[\\.\\-][0-9]+\\.[0-9]+).*")
-	if err != nil {
-		log.Debugln("regexp is invalid")
-		log.Debugln("ParseVersionFromFilename LEAVE")
-		return "", err
-	}
-	strings := r.FindStringSubmatch(filename)
-	if strings == nil || len(strings) < 2 {
-		log.Debugln("Unable to find version from string")
-		log.Debugln("ParseVersionFromFilename LEAVE")
-		return "", ErrParseVersionFailed
-	}
-
-	version := strings[1]
-
-	log.Debugln("Found:", version)
-	log.Debugln("ParseVersionFromFilename LEAVE")
-
-	return version, nil
+//ParseVersionFromFilename this parses the version string out of the filename
+func (inst *Inst) ParseVersionFromFilename(filename string) (string, error) {
+	return common.ParseVersionFromFilename(filename)
 }
 
 //IsVersionStringHigher checks to see if one version is higher than the current
-func (Inst) IsVersionStringHigher(existing string, comparing string) bool {
+func (inst *Inst) IsVersionStringHigher(existing string, comparing string) bool {
 	log.Debugln("IsVersionStringHigher ENTER")
 	log.Debugln("existing:", existing)
 	log.Debugln("comparing:", comparing)
