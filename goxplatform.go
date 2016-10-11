@@ -1,6 +1,8 @@
 package goxplatform
 
 import (
+	"sync"
+
 	log "github.com/Sirupsen/logrus"
 
 	fs "github.com/dvonthenen/goxplatform/fs"
@@ -16,6 +18,9 @@ func init() {
 	log.Infoln("Initializing goxplatform...")
 }
 
+var myInstance *XPlatform
+var myOnce sync.Once
+
 //XPlatform is a static class that provides System related functions
 type XPlatform struct {
 	Sys  *sys.Sys
@@ -26,8 +31,7 @@ type XPlatform struct {
 	Inst *inst.Inst
 }
 
-//New generates a Sys object
-func New() *XPlatform {
+func new() *XPlatform {
 	mySys := sys.NewSys()
 	myFs := fs.NewFs()
 	myStr := str.NewStr()
@@ -45,4 +49,12 @@ func New() *XPlatform {
 	}
 
 	return myXPlatform
+}
+
+//GetInstance singleton implementation for XPlatform
+func GetInstance() *XPlatform {
+	myOnce.Do(func() {
+		myInstance = new()
+	})
+	return myInstance
 }
