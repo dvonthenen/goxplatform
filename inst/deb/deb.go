@@ -1,10 +1,12 @@
-package goxplatform
+package deb
 
 import (
 	"errors"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
+
+	run "github.com/dvonthenen/goxplatform/run"
 )
 
 var (
@@ -35,7 +37,7 @@ func GetInstalledVersion(packageName string, parseVersion bool) (string, error) 
 	log.Debugln("packageName:", packageName)
 
 	cmdline := "dpkg -s " + packageName + " | grep Version | sed -n -e 's/^.*Version: //p'"
-	output, errCmd := RunCommandOutput(cmdline)
+	output, errCmd := run.CommandOutput(cmdline)
 	if errCmd != nil {
 		log.Debugln("runCommandOutput Failed:", errCmd)
 		log.Debugln("GetInstalledVersion LEAVE")

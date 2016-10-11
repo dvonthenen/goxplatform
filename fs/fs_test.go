@@ -1,4 +1,4 @@
-package goxplatform
+package fs
 
 import (
 	"testing"

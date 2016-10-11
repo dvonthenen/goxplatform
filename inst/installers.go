@@ -1,4 +1,4 @@
-package goxplatform
+package inst
 
 import (
 	"errors"
@@ -17,9 +17,12 @@ var (
 	ErrParseVersionFailed = errors.New("Failed to parse version from filename")
 )
 
+//Inst is a static class that captures install package rules
+type Inst struct{}
+
 //DownloadPackage downloads a payload specified by the URI and
 //returns the local path for where the bits land
-func DownloadPackage(installPackageURI string) (string, error) {
+func (Inst) DownloadPackage(installPackageURI string) (string, error) {
 	log.Infoln("downloadPackage ENTER")
 	log.Infoln("installPackageURI=", installPackageURI)
 
@@ -68,7 +71,7 @@ func DownloadPackage(installPackageURI string) (string, error) {
 
 //ParseVersionFromFilename this parses the version string out of the
 //DEBs filename
-func ParseVersionFromFilename(filename string) (string, error) {
+func (Inst) ParseVersionFromFilename(filename string) (string, error) {
 	log.Debugln("ParseVersionFromFilename ENTER")
 	log.Debugln("filename:", filename)
 
@@ -94,7 +97,7 @@ func ParseVersionFromFilename(filename string) (string, error) {
 }
 
 //IsVersionStringHigher checks to see if one version is higher than the current
-func IsVersionStringHigher(existing string, comparing string) bool {
+func (Inst) IsVersionStringHigher(existing string, comparing string) bool {
 	log.Debugln("IsVersionStringHigher ENTER")
 	log.Debugln("existing:", existing)
 	log.Debugln("comparing:", comparing)
