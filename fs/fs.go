@@ -1,13 +1,13 @@
-package goxplatform
+package fs
 
 import (
 	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	uuid "github.com/twinj/uuid"
 )
 
 var (
@@ -21,9 +21,12 @@ var (
 	ErrDstNotRegularFile = errors.New("Destination file is not a regular file")
 )
 
+//Fs is a static class that provides Filesystem type functions
+type Fs struct{}
+
 //GetFullExePath returns the fullpath of the executable including the executable
 //name itself
-func GetFullExePath() (string, error) {
+func (Fs) GetFullExePath() (string, error) {
 	path, err := os.Readlink("/proc/self/exe")
 	if err != nil {
 		log.Errorln("Readlink failed:", err)
@@ -33,24 +36,11 @@ func GetFullExePath() (string, error) {
 	return path, nil
 }
 
-//GetFullPath returns the fullpath of the executable without the executable name
-func GetFullPath() (string, error) {
-	path, err := os.Readlink("/proc/self/exe")
-	if err != nil {
-		log.Errorln("Readlink failed:", err)
-		return "", nil
-	}
-	log.Debugln("EXE path:", path)
-
-	tmp := GetPathFileFullFilename(path)
-	return tmp, nil
-}
-
 //GetPathFileFullFilename returns the parent folder name
-func GetPathFileFullFilename(path string) string {
+func (Fs) GetPathFileFullFilename(path string) string {
 	log.Debugln("GetPathFileFullFilename ENTER")
 	log.Debugln("path:", path)
-	last := strings.LastIndex(path, "/")
+	last := strings.LastIndex(path, string(filepath.Separator))
 	if last == -1 {
 		log.Debugln("No slash. Return Path:", path)
 		log.Debugln("GetPathFileFullFilename LEAVE")
@@ -62,12 +52,25 @@ func GetPathFileFullFilename(path string) string {
 	return tmp
 }
 
+//GetFullPath returns the fullpath of the executable without the executable name
+func (Fs) GetFullPath() (string, error) {
+	path, err := os.Readlink("/proc/self/exe")
+	if err != nil {
+		log.Errorln("Readlink failed:", err)
+		return "", nil
+	}
+	log.Debugln("EXE path:", path)
+
+	tmp := Fs.GetPathFileFullFilename(path)
+	return tmp, nil
+}
+
 //GetFilenameFromURIOrFullPath retrieves the filename from an URI
-func GetFilenameFromURIOrFullPath(path string) string {
+func (Fs) GetFilenameFromURIOrFullPath(path string) string {
 	log.Debugln("GetFilenameFromURI ENTER")
 	log.Debugln("path:", path)
 
-	last := strings.LastIndex(path, "/")
+	last := strings.LastIndex(path, string(filepath.Separator))
 	if last == -1 {
 		log.Debugln("No slash. Return Path:", path)
 		log.Debugln("GetFilenameFromURI LEAVE")
@@ -81,46 +84,19 @@ func GetFilenameFromURIOrFullPath(path string) string {
 }
 
 //AppendSlash appends a slash to a path if one is needed
-func AppendSlash(path string) string {
+func (Fs) AppendSlash(path string) string {
 	log.Debugln("AppendSlash ENTER")
 	log.Debugln("path:", path)
-	if path[len(path)-1] != '/' {
-		path += "/"
+	if path[len(path)-1] != filepath.Separator {
+		path += string(filepath.Separator)
 	}
 	log.Debugln("Return Path:", path)
 	log.Debugln("GetFilenameFromURI LEAVE")
 	return path
 }
 
-//GetUUID generates a UUID
-func GetUUID() []byte {
-	myUUID := uuid.NewV1()
-	log.Debugln("UUID Generated:", myUUID.String())
-	return myUUID.Bytes()
-}
-
-//GetRunningKernelVersion returns the running kernel version
-func GetRunningKernelVersion() (string, error) {
-	log.Debugln("GetRunningKernelVersion ENTER")
-
-	cmdline := "uname -r"
-	output, err := RunCommandOutput(cmdline)
-	if err != nil {
-		log.Debugln("runCommandOutput Failed:", err)
-		log.Debugln("GetRunningKernelVersion LEAVE")
-		return "", err
-	}
-
-	version := output
-
-	log.Debugln("GetRunningKernelVersion Kernel:", version)
-	log.Debugln("GetRunningKernelVersion LEAVE")
-
-	return version, nil
-}
-
 //FileCopy copies the contents of the src file to the dst file
-func FileCopy(src string, dst string) error {
+func (Fs) FileCopy(src string, dst string) error {
 	log.Debugln("FileCopy ENTER")
 	log.Debugln("SRC:", src)
 	log.Debugln("DST:", dst)

@@ -1,4 +1,4 @@
-package goxplatform
+package bintray
 
 import (
 	"bufio"

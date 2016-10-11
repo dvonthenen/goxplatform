@@ -1,4 +1,4 @@
-package goxplatform
+package run
 
 import (
 	"bufio"
@@ -36,8 +36,11 @@ var (
 	ErrExecuteFailed = errors.New("The command line failed to execute correctly")
 )
 
-//RunCommand executes a command that monitors output for success or failure
-func RunCommand(cmdLine string, successRegex string, failureRegex string) error {
+//Run is a static class that enables running and capturing command output
+type Run struct{}
+
+//Command executes a command that monitors output for success or failure
+func (Run) Command(cmdLine string, successRegex string, failureRegex string) error {
 	log.Debugln("RunCommand ENTER")
 	log.Debugln("Cmdline:", cmdLine)
 	log.Debugln("SuccessRegex:", successRegex)
@@ -114,8 +117,8 @@ func RunCommand(cmdLine string, successRegex string, failureRegex string) error 
 	return ErrExecuteFailed
 }
 
-//RunCommandEx executes a command that monitors output for success or failure with a timeout
-func RunCommandEx(cmdLine string, successRegex string, failureRegex string, waitInSec int) error {
+//CommandEx executes a command that monitors output for success or failure with a timeout
+func (Run) CommandEx(cmdLine string, successRegex string, failureRegex string, waitInSec int) error {
 	log.Debugln("RunCommandEx ENTER")
 	log.Debugln("Cmdline:", cmdLine)
 	log.Debugln("SuccessRegex:", successRegex)
@@ -224,8 +227,8 @@ func RunCommandEx(cmdLine string, successRegex string, failureRegex string, wait
 	return ErrExecuteFailed
 }
 
-//RunCommandOutput executes a command that returns the output
-func RunCommandOutput(cmdLine string) (string, error) {
+//CommandOutput executes a command that returns the output
+func (Run) CommandOutput(cmdLine string) (string, error) {
 	log.Debugln("RunCommandOutput ENTER")
 	log.Debugln("Cmdline:", cmdLine)
 
@@ -252,7 +255,7 @@ func RunCommandOutput(cmdLine string) (string, error) {
 }
 
 //CreateProcess starts a new detached process
-func CreateProcess(cmdLine string) error {
+func (Run) CreateProcess(cmdLine string) error {
 	log.Debugln("CreateProcess ENTER")
 	log.Debugln("cmdLine:", cmdLine)
 
