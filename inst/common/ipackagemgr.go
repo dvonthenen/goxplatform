@@ -1,4 +1,4 @@
-package ipackagemgr
+package common
 
 //IPackageMgr is the interface for implementing functions for different package managers
 type IPackageMgr interface {
