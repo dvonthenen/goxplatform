@@ -13,7 +13,6 @@ import (
 	fs "github.com/dvonthenen/goxplatform/fs"
 	common "github.com/dvonthenen/goxplatform/inst/common"
 	deb "github.com/dvonthenen/goxplatform/inst/deb"
-	ipm "github.com/dvonthenen/goxplatform/inst/ipackagemgr"
 	sys "github.com/dvonthenen/goxplatform/sys"
 )
 
@@ -26,7 +25,7 @@ var (
 type Inst struct {
 	fs  *fs.Fs
 	sys *sys.Sys
-	ipm ipm.IPackageMgr
+	ipm common.IPackageMgr
 }
 
 //NewInst generates a Inst object
@@ -34,7 +33,7 @@ func NewInst() *Inst {
 	myFs := fs.NewFs()
 	mySys := sys.NewSys()
 
-	var myIpm ipm.IPackageMgr
+	var myIpm common.IPackageMgr
 	switch mySys.GetOsType() {
 	case sys.OsUbuntu:
 		myIpm = deb.NewDeb()
