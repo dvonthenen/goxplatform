@@ -13,6 +13,7 @@ import (
 	fs "github.com/dvonthenen/goxplatform/fs"
 	common "github.com/dvonthenen/goxplatform/inst/common"
 	deb "github.com/dvonthenen/goxplatform/inst/deb"
+	rpm "github.com/dvonthenen/goxplatform/inst/rpm"
 	sys "github.com/dvonthenen/goxplatform/sys"
 )
 
@@ -37,6 +38,10 @@ func NewInst() *Inst {
 	switch mySys.GetOsType() {
 	case sys.OsUbuntu:
 		myIpm = deb.NewDeb()
+	case sys.OsRhel:
+		myIpm = rpm.NewRpm()
+	case sys.OsSuse:
+		myIpm = rpm.NewRpm()
 	}
 
 	myInst := &Inst{
