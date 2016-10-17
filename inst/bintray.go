@@ -12,18 +12,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
-//CorrectVersionFromDeb formats the version string to match dpkg info
-func (inst *Inst) CorrectVersionFromDeb(version string) string {
-	if len(version) == 0 {
-		return ""
-	}
-	arr := strings.Split(version, "-")
-	if len(arr) == 0 {
-		return ""
-	}
-	return arr[0]
-}
-
 //GetVersionFromBintray grabs the version from bintray
 func (inst *Inst) GetVersionFromBintray(URI string) (string, error) {
 	log.Debugln("getRexrayVersionFromBintray ENTER")
