@@ -46,6 +46,13 @@ func (deb *Deb) IsInstalled(packageName string) error {
 	return nil
 }
 
+func correctVersionFromDeb(version string) string {
+	if len(version) == 0 {
+		return ""
+	}
+	return strings.Replace(version, "-", ".", -1)
+}
+
 //GetInstalledVersion returns the version of the installed package
 func (deb *Deb) GetInstalledVersion(packageName string, parseVersion bool) (string, error) {
 	log.Debugln("GetInstalledVersion ENTER")
@@ -71,6 +78,7 @@ func (deb *Deb) GetInstalledVersion(packageName string, parseVersion bool) (stri
 	}
 
 	version := output
+	version = correctVersionFromDeb(version)
 
 	if parseVersion {
 		myVersion, errParse := common.ParseVersionFromFilename(output)
