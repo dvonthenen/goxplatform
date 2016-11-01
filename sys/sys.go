@@ -2,13 +2,17 @@ package sys
 
 import (
 	"errors"
+	"io/ioutil"
+	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	uuid "github.com/twinj/uuid"
 
+	common "github.com/dvonthenen/goxplatform/common"
 	fs "github.com/dvonthenen/goxplatform/fs"
 	run "github.com/dvonthenen/goxplatform/run"
+	str "github.com/dvonthenen/goxplatform/str"
 )
 
 const (
@@ -40,21 +44,27 @@ var (
 
 	//ErrDstNotRegularFile dst file is not a regular file
 	ErrDstNotRegularFile = errors.New("Destination file is not a regular file")
+
+	//ErrUnknownOsVersion unable to determine OS version
+	ErrUnknownOsVersion = errors.New("Unknown OS version")
 )
 
 //Sys is a static class that provides System related functions
 type Sys struct {
 	run *run.Run
 	fs  *fs.Fs
+	str *str.Str
 }
 
 //NewSys generates a Sys object
 func NewSys() *Sys {
 	myRun := run.NewRun()
 	myFs := fs.NewFs()
+	myStr := str.NewStr()
 	mySys := &Sys{
 		run: myRun,
 		fs:  myFs,
+		str: myStr,
 	}
 	return mySys
 }
@@ -64,6 +74,13 @@ func (sys *Sys) GetUUID() []byte {
 	myUUID := uuid.NewV1()
 	log.Debugln("UUID Generated:", myUUID.String())
 	return myUUID.Bytes()
+}
+
+//GetUUIDStr generates a UUID
+func (sys *Sys) GetUUIDStr() string {
+	myUUID := uuid.NewV1()
+	log.Debugln("UUID Generated:", myUUID.String())
+	return myUUID.String()
 }
 
 //GetOsType gets the OS type
@@ -91,6 +108,64 @@ func (sys *Sys) GetOsType() int {
 	log.Debugln("GetOsType =", osType)
 	log.Debugln("GetOsType LEAVE")
 	return osType
+}
+
+func parseVersionFromString(str string) (int, int, error) {
+	strs := strings.Split(str, ".")
+	imajor, errMajor := strconv.Atoi(strs[0])
+	if errMajor != nil {
+		return 0, 0, errMajor
+	}
+	iminor, errMinor := strconv.Atoi(strs[1])
+	if errMinor != nil {
+		return 0, 0, errMinor
+	}
+	return imajor, iminor, nil
+}
+
+//GetOsVersion returns the major minor version of the OS
+func (sys *Sys) GetOsVersion() (int, int, error) {
+	log.Debugln("GetOsVersion ENTER")
+
+	itype := sys.GetOsType()
+	switch itype {
+	case OsRhel:
+		data, errRead := ioutil.ReadFile("/etc/redhat-release")
+		if errRead != nil {
+			return 0, 0, errRead
+		}
+		log.Debugln(string(data))
+		needles, errRegex := sys.str.RegexMatch(string(data), " ([0-9]+\\.[0-9]+[\\.]*[0-9]*) ")
+		if errRegex != nil {
+			return 0, 0, errRegex
+		}
+		return parseVersionFromString(needles[0])
+
+	case OsSuse:
+		return 0, 0, common.ErrNotImplemented //TODO
+
+	case OsUbuntu:
+		data, errRead := ioutil.ReadFile("/etc/lsb-release")
+		if errRead != nil {
+			return 0, 0, errRead
+		}
+		log.Debugln(string(data))
+		needles, errRegex := sys.str.RegexMatch(string(data), "DISTRIB_RELEASE=([0-9]+\\.[0-9]+[\\.]*[0-9]*) ")
+		if errRegex != nil {
+			return 0, 0, errRegex
+		}
+		return parseVersionFromString(needles[0])
+
+	case OsCoreOs:
+		return 0, 0, common.ErrNotImplemented //TODO
+
+	case OsMac:
+		return 0, 0, common.ErrNotImplemented //TODO
+	}
+
+	log.Debugln("GetOsVersion LEAVE")
+
+	return 0, 0, ErrUnknownOsVersion
 }
 
 //GetOsStrByType gets the OS string
