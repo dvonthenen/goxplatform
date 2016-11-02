@@ -36,7 +36,7 @@ func (fs *Fs) DoesFileExist(fullpath string) bool {
 	log.Debugln("fullpath:", fullpath)
 
 	sfi, err := os.Stat(fullpath)
-	if err != nil {
+	if !os.IsNotExist(err) {
 		log.Debugln("Src Stat Failed:", err)
 		log.Debugln("FileCopy LEAVE")
 		return false
