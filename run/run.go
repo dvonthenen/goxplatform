@@ -45,6 +45,12 @@ func NewRun() *Run {
 	return myRun
 }
 
+//ExecExistsInPath returns ture if exec exists in the given path
+func ExecExistsInPath(exe string) bool {
+	_, err := exec.LookPath(exe)
+	return err == nil
+}
+
 //Command executes a command that monitors output for success or failure
 func (Run) Command(cmdLine string, successRegex string, failureRegex string) error {
 	log.Debugln("RunCommand ENTER")
