@@ -46,13 +46,13 @@ func NewRun() *Run {
 }
 
 //ExecExistsInPath returns ture if exec exists in the given path
-func ExecExistsInPath(exe string) bool {
+func (run *Run) ExecExistsInPath(exe string) bool {
 	_, err := exec.LookPath(exe)
 	return err == nil
 }
 
 //Command executes a command that monitors output for success or failure
-func (Run) Command(cmdLine string, successRegex string, failureRegex string) error {
+func (run *Run) Command(cmdLine string, successRegex string, failureRegex string) error {
 	log.Debugln("RunCommand ENTER")
 	log.Debugln("Cmdline:", cmdLine)
 	log.Debugln("SuccessRegex:", successRegex)
@@ -130,7 +130,7 @@ func (Run) Command(cmdLine string, successRegex string, failureRegex string) err
 }
 
 //CommandEx executes a command that monitors output for success or failure with a timeout
-func (Run) CommandEx(cmdLine string, successRegex string, failureRegex string, waitInSec int) error {
+func (run *Run) CommandEx(cmdLine string, successRegex string, failureRegex string, waitInSec int) error {
 	log.Debugln("RunCommandEx ENTER")
 	log.Debugln("Cmdline:", cmdLine)
 	log.Debugln("SuccessRegex:", successRegex)
@@ -240,7 +240,7 @@ func (Run) CommandEx(cmdLine string, successRegex string, failureRegex string, w
 }
 
 //CommandOutput executes a command that returns the output
-func (Run) CommandOutput(cmdLine string) (string, error) {
+func (run *Run) CommandOutput(cmdLine string) (string, error) {
 	log.Debugln("RunCommandOutput ENTER")
 	log.Debugln("Cmdline:", cmdLine)
 
@@ -267,7 +267,7 @@ func (Run) CommandOutput(cmdLine string) (string, error) {
 }
 
 //CreateProcess starts a new detached process
-func (Run) CreateProcess(cmdLine string) error {
+func (run *Run) CreateProcess(cmdLine string) error {
 	log.Debugln("CreateProcess ENTER")
 	log.Debugln("cmdLine:", cmdLine)
 
