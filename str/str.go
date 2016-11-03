@@ -3,6 +3,7 @@ package str
 import (
 	"errors"
 	"regexp"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -41,5 +42,22 @@ func (str *Str) RegexMatch(haystack string, regex string) ([]string, error) {
 		return nil, ErrRegexpFailed
 	}
 
+	log.Debugln("RegexMatch:", strings)
+	log.Debugln("RegexMatch LEAVE")
 	return strings, nil
+}
+
+//Trim all chars in col from front and end of the provided line
+func (str *Str) Trim(line string, col string) string {
+	log.Debugln("Trim ENTER")
+	log.Debugln("line:", line)
+	log.Debugln("col:", col)
+
+	tmp := strings.TrimLeft(line, col)
+	tmp = strings.TrimRight(tmp, col)
+
+	log.Debugln("Trim:", tmp)
+	log.Debugln("Trim LEAVE")
+
+	return tmp
 }
