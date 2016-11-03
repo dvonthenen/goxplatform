@@ -25,8 +25,3 @@ func TestGetUUIDStr(t *testing.T) {
 	uuid := sys.GetUUIDStr()
 	assert.NotEqual(t, "", uuid)
 }
-
-func TestGetOsType(t *testing.T) {
-	itype := sys.GetOsType()
-	assert.NotEqual(t, OsUnknown, itype)
-}
