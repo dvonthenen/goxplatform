@@ -35,22 +35,15 @@ func (fs *Fs) DoesFileExist(fullpath string) bool {
 	log.Debugln("DoesFileExist ENTER")
 	log.Debugln("fullpath:", fullpath)
 
-	sfi, err := os.Stat(fullpath)
-	if !os.IsNotExist(err) {
-		log.Debugln("Src Stat Failed:", err)
-		log.Debugln("FileCopy LEAVE")
-		return false
-	}
-	if !sfi.Mode().IsRegular() {
-		//cannot use non-regular files (e.g., directories, symlinks, devices, etc.)
-		log.Debugln("Src file is not regular")
+	if _, err := os.Stat(fullpath); !os.IsNotExist(err) {
+		log.Debugln(fullpath, "does exists")
 		log.Debugln("DoesFileExist LEAVE")
-		return false
+		return true
 	}
 
-	log.Debugln("File exists")
+	log.Debugln(fullpath, "does not exists")
 	log.Debugln("DoesFileExist LEAVE")
-	return true
+	return false
 }
 
 //GetFullExePath returns the fullpath of the executable including the executable
