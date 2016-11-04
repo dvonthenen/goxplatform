@@ -17,7 +17,7 @@ func NewNw() *Nw {
 }
 
 //AutoDiscoverIP attempt to discover the IP for this host
-func AutoDiscoverIP() (string, error) {
+func (nw *Nw) AutoDiscoverIP() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		log.Warnln("Failed to get Interfaces", err)
