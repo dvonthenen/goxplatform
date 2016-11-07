@@ -46,26 +46,58 @@ func (rpm *Rpm) IsInstalled(packageName string) error {
 	return nil
 }
 
+func correctVersionFromRpm(version string) string {
+	if len(version) == 0 {
+		return ""
+	}
+
+	index := strings.Index(version, ".el")
+	if index == -1 {
+		return version
+	}
+
+	fixedVersion := version[:index]
+	return fixedVersion
+}
+
 //GetInstalledVersion returns the version of the installed package
 func (rpm *Rpm) GetInstalledVersion(packageName string, parseVersion bool) (string, error) {
 	log.Debugln("GetInstalledVersion ENTER")
 	log.Debugln("packageName:", packageName)
 
 	cmdline := "rpm -qi " + packageName + " | grep Version | sed -n -e 's/^.*Version.*: //p'"
-	output, errCmd := rpm.run.CommandOutput(cmdline)
-	if errCmd != nil {
-		log.Debugln("runCommandOutput Failed:", errCmd)
+	output1, errCmd1 := rpm.run.CommandOutput(cmdline)
+	if errCmd1 != nil {
+		log.Debugln("runCommandOutput Failed:", errCmd1)
 		log.Debugln("GetInstalledVersion LEAVE")
-		return "", errCmd
+		return "", errCmd1
 	}
 
-	if len(output) == 0 {
-		log.Debugln("Output length is empty")
+	if len(output1) == 0 {
+		log.Debugln("Output1 length is empty")
 		log.Debugln("GetInstalledVersion LEAVE")
 		return "", ErrExecEmptyOutput
 	}
 
-	if strings.Contains(output, "is not installed") {
+	cmdline = "rpm -qi " + packageName + " | grep Release | sed -n -e 's/^.*Release.*: //p'"
+	output2, errCmd2 := rpm.run.CommandOutput(cmdline)
+	if errCmd2 != nil {
+		log.Debugln("runCommandOutput Failed:", errCmd2)
+		log.Debugln("GetInstalledVersion LEAVE")
+		return "", errCmd2
+	}
+
+	if len(output2) == 0 {
+		log.Debugln("Output2 length is empty")
+		log.Debugln("GetInstalledVersion LEAVE")
+		return "", ErrExecEmptyOutput
+	}
+
+	output := output1 + "-" + output2
+	output = correctVersionFromRpm(output)
+
+	if strings.Contains(output1, "is not installed") ||
+		strings.Contains(output2, "is not installed") {
 		log.Warnln("Package", packageName, "is not installed. Blanking the output.")
 		output = ""
 	}

@@ -17,11 +17,11 @@ func TestMain(m *testing.M) {
 }
 
 func TestRegexMatch(t *testing.T) {
-	strings, err := str.RegexMatch("hello", "el+")
+	strings, err := str.RegexMatch("http://10.0.0.1:9000", ".+//(.*):[0-9]+")
 	assert.Equal(t, nil, err)
 	assert.NotEqual(t, nil, strings)
-	assert.Equal(t, 1, len(strings))
-	assert.Equal(t, "ell", strings[0])
+	assert.Equal(t, 2, len(strings))
+	assert.Equal(t, "10.0.0.1", strings[1])
 }
 
 func TestTrim(t *testing.T) {
