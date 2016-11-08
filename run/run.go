@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"math"
 	"os"
 	"os/exec"
 	"regexp"
@@ -17,6 +18,8 @@ import (
 const (
 	rootUID = 0
 	rootGID = 0
+
+	cmdReties = 4
 )
 
 var (
@@ -51,9 +54,8 @@ func (run *Run) ExecExistsInPath(exe string) bool {
 	return err == nil
 }
 
-//Command executes a command that monitors output for success or failure
-func (run *Run) Command(cmdLine string, successRegex string, failureRegex string) error {
-	log.Debugln("RunCommand ENTER")
+func command(cmdLine string, successRegex string, failureRegex string) error {
+	log.Debugln("command ENTER")
 	log.Debugln("Cmdline:", cmdLine)
 	log.Debugln("SuccessRegex:", successRegex)
 	log.Debugln("FailureRegex:", failureRegex)
@@ -61,28 +63,28 @@ func (run *Run) Command(cmdLine string, successRegex string, failureRegex string
 	cmd := exec.Command("bash", "-c", cmdLine)
 	if cmd == nil {
 		log.Errorln("Error creating cmd")
-		log.Debugln("RunCommand LEAVE")
+		log.Debugln("command LEAVE")
 		return ErrCommandCreateFailed
 	}
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Errorln("Error starting Cmd:", err)
-		log.Debugln("RunCommand LEAVE")
+		log.Debugln("command LEAVE")
 		return err
 	}
 
 	readbuffer := bytes.NewBuffer(out)
 	if readbuffer == nil {
 		log.Errorln("Error creating buffer")
-		log.Debugln("RunCommand LEAVE")
+		log.Debugln("command LEAVE")
 		return ErrBufferCreateFailed
 	}
 
 	reader := bufio.NewScanner(readbuffer)
 	if reader == nil {
 		log.Errorln("Error creating reader")
-		log.Debugln("RunCommand LEAVE")
+		log.Debugln("command LEAVE")
 		return ErrReaderCreateFailed
 	}
 
@@ -115,23 +117,48 @@ func (run *Run) Command(cmdLine string, successRegex string, failureRegex string
 
 	if failure {
 		log.Debugln("Cmdline explicitly failed to execute correctly")
-		log.Debugln("RunCommand LEAVE")
+		log.Debugln("command LEAVE")
 		return ErrExecuteFailed
 	}
 	if succeeded {
 		log.Debugln("Cmdline executed successful")
-		log.Debugln("RunCommand LEAVE")
+		log.Debugln("command LEAVE")
 		return nil
 	}
 
 	log.Debugln("Cmdline implicitly failed to execute correctly")
-	log.Debugln("RunCommand LEAVE")
+	log.Debugln("command LEAVE")
 	return ErrExecuteFailed
 }
 
-//CommandEx executes a command that monitors output for success or failure with a timeout
-func (run *Run) CommandEx(cmdLine string, successRegex string, failureRegex string, waitInSec int) error {
-	log.Debugln("RunCommandEx ENTER")
+//Command executes a command that monitors output for success or failure
+func (run *Run) Command(cmdLine string, successRegex string, failureRegex string) error {
+	log.Debugln("Command ENTER")
+	log.Debugln("Cmdline:", cmdLine)
+	log.Debugln("SuccessRegex:", successRegex)
+	log.Debugln("FailureRegex:", failureRegex)
+
+	var err error
+	for i := 0; i < cmdReties; i++ {
+		log.Debugln("Command attempt #", i+1)
+
+		err = command(cmdLine, successRegex, failureRegex)
+		if err == nil {
+			log.Debugln("Command Succeeded")
+			break
+		}
+
+		expDelay := math.Pow(2, float64(i+1))
+		log.Debugln("Waiting", expDelay, "before retry.")
+		time.Sleep(time.Duration(expDelay) * time.Second)
+	}
+
+	log.Debugln("Command LEAVE")
+	return err
+}
+
+func commandEx(cmdLine string, successRegex string, failureRegex string, waitInSec int) error {
+	log.Debugln("commandEx ENTER")
 	log.Debugln("Cmdline:", cmdLine)
 	log.Debugln("SuccessRegex:", successRegex)
 	log.Debugln("FailureRegex:", failureRegex)
@@ -139,28 +166,28 @@ func (run *Run) CommandEx(cmdLine string, successRegex string, failureRegex stri
 	cmd := exec.Command("bash", "-c", cmdLine)
 	if cmd == nil {
 		log.Errorln("Error creating cmd")
-		log.Debugln("RunCommandEx LEAVE")
+		log.Debugln("commandEx LEAVE")
 		return ErrCommandCreateFailed
 	}
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		log.Errorln("Error getting StdoutPipe:", err)
-		log.Debugln("RunCommandEx LEAVE")
+		log.Debugln("commandEx LEAVE")
 		return err
 	}
 
 	err = cmd.Start()
 	if err != nil {
 		log.Errorln("Error on cmd start:", err)
-		log.Debugln("RunCommandEx LEAVE")
+		log.Debugln("commandEx LEAVE")
 		return err
 	}
 
 	stdoutScanner := bufio.NewScanner(stdout)
 	if cmd == nil {
 		log.Errorln("Error creating scanner")
-		log.Debugln("RunCommandEx LEAVE")
+		log.Debugln("commandEx LEAVE")
 		return ErrScannerCreateFailed
 	}
 
@@ -185,14 +212,14 @@ func (run *Run) CommandEx(cmdLine string, successRegex string, failureRegex stri
 	outputBuffer := bytes.NewBuffer([]byte(output))
 	if outputBuffer == nil {
 		log.Errorln("Error creating buffer")
-		log.Debugln("RunCommandEx LEAVE")
+		log.Debugln("commandEx LEAVE")
 		return ErrBufferCreateFailed
 	}
 
 	outputScanner := bufio.NewScanner(outputBuffer)
 	if outputScanner == nil {
 		log.Errorln("Error creating reader")
-		log.Debugln("RunCommandEx LEAVE")
+		log.Debugln("commandEx LEAVE")
 		return ErrScannerCreateFailed
 	}
 
@@ -225,50 +252,99 @@ func (run *Run) CommandEx(cmdLine string, successRegex string, failureRegex stri
 
 	if failure {
 		log.Debugln("Cmdline explicitly failed to execute correctly")
-		log.Debugln("RunCommandEx LEAVE")
+		log.Debugln("commandEx LEAVE")
 		return ErrExecuteFailed
 	}
 	if succeeded {
 		log.Debugln("Cmdline executed successful")
-		log.Debugln("RunCommandEx LEAVE")
+		log.Debugln("commandEx LEAVE")
 		return nil
 	}
 
 	log.Debugln("Cmdline implicitly failed to execute correctly")
-	log.Debugln("RunCommandEx LEAVE")
+	log.Debugln("commandEx LEAVE")
 	return ErrExecuteFailed
 }
 
-//CommandOutput executes a command that returns the output
-func (run *Run) CommandOutput(cmdLine string) (string, error) {
-	log.Debugln("RunCommandOutput ENTER")
+//CommandEx executes a command that monitors output for success or failure with a timeout
+func (run *Run) CommandEx(cmdLine string, successRegex string, failureRegex string, waitInSec int) error {
+	log.Debugln("CommandEx ENTER")
+	log.Debugln("Cmdline:", cmdLine)
+	log.Debugln("SuccessRegex:", successRegex)
+	log.Debugln("FailureRegex:", failureRegex)
+
+	var err error
+	for i := 0; i < cmdReties; i++ {
+		log.Debugln("CommandEx attempt #", i+1)
+
+		err = commandEx(cmdLine, successRegex, failureRegex, waitInSec)
+		if err == nil {
+			log.Debugln("CommandEx Succeeded")
+			break
+		}
+
+		expDelay := math.Pow(2, float64(i+1))
+		log.Debugln("Waiting", expDelay, "before retry.")
+		time.Sleep(time.Duration(expDelay) * time.Second)
+	}
+
+	log.Debugln("CommandEx LEAVE")
+	return err
+}
+
+func commandOutput(cmdLine string) (string, error) {
+	log.Debugln("commandOutput ENTER")
 	log.Debugln("Cmdline:", cmdLine)
 
 	cmd := exec.Command("bash", "-c", cmdLine)
 	if cmd == nil {
 		log.Errorln("Error creating cmd")
-		log.Debugln("RunCommandOutput LEAVE")
+		log.Debugln("commandOutput LEAVE")
 		return "", ErrCommandCreateFailed
 	}
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Errorln("Error getting output:", err)
-		log.Debugln("RunCommandOutput LEAVE")
+		log.Debugln("commandOutput LEAVE")
 		return "", err
 	}
 
 	output := strings.TrimSpace(string(out))
 
-	log.Debugln("RunCommandOutput Succeeded")
+	log.Debugln("commandOutput Succeeded")
 	log.Debugln(output)
-	log.Debugln("RunCommandOutput LEAVE")
+	log.Debugln("commandOutput LEAVE")
 	return output, nil
 }
 
-//CreateProcess starts a new detached process
-func (run *Run) CreateProcess(cmdLine string) error {
-	log.Debugln("CreateProcess ENTER")
+//CommandOutput executes a command that returns the output
+func (run *Run) CommandOutput(cmdLine string) (string, error) {
+	log.Debugln("CommandOutput ENTER")
+	log.Debugln("Cmdline:", cmdLine)
+
+	var output string
+	var err error
+	for i := 0; i < cmdReties; i++ {
+		log.Debugln("CommandOutput attempt #", i+1)
+
+		output, err = commandOutput(cmdLine)
+		if err == nil {
+			log.Debugln("CommandOutput Succeeded")
+			break
+		}
+
+		expDelay := math.Pow(2, float64(i+1))
+		log.Debugln("Waiting", expDelay, "before retry.")
+		time.Sleep(time.Duration(expDelay) * time.Second)
+	}
+
+	log.Debugln("CommandOutput LEAVE")
+	return output, err
+}
+
+func createProcess(cmdLine string) error {
+	log.Debugln("createProcess ENTER")
 	log.Debugln("cmdLine:", cmdLine)
 
 	// The Credential fields are used to set UID, GID and attitional GIDS of the process
@@ -301,20 +377,43 @@ func (run *Run) CreateProcess(cmdLine string) error {
 		log.Debugln("Arg #", i, ":", args[i])
 	}
 
-	log.Debugln("CreateProcess Before")
+	log.Debugln("createProcess Before")
 	process, err := os.StartProcess(args[0], args, &attr)
-	log.Debugln("CreateProcess After")
+	log.Debugln("createProcess After")
 
 	if err == nil {
 		// It is not clear from docs, but Realease actually detaches the process
 		err = process.Release()
 		if err == nil {
-			log.Debugln("CreateProcess succeeded!")
+			log.Debugln("createProcess succeeded!")
 		} else {
 			log.Errorln("Process Release failed:", err)
 		}
 	} else {
-		log.Errorln("StartProcess failed:", err)
+		log.Errorln("createProcess failed:", err)
+	}
+
+	log.Debugln("createProcess LEAVE")
+	return err
+}
+
+//CreateProcess starts a new detached process
+func (run *Run) CreateProcess(cmdLine string) error {
+	log.Debugln("CreateProcess ENTER")
+	log.Debugln("cmdLine:", cmdLine)
+
+	var err error
+	for i := 0; i < cmdReties; i++ {
+		log.Debugln("CreateProcess attempt #", i+1)
+
+		err = createProcess(cmdLine)
+		if err == nil {
+			log.Debugln("CreateProcess Succeeded")
+			break
+		}
+
+		expDelay := math.Pow(2, float64(i+1))
+		time.Sleep(time.Duration(expDelay) * time.Second)
 	}
 
 	log.Debugln("CreateProcess LEAVE")
