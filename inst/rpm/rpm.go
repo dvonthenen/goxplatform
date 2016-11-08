@@ -78,7 +78,7 @@ func (rpm *Rpm) GetInstalledVersion(packageName string, parseVersion bool) (stri
 		return "", ErrExecEmptyOutput
 	}
 
-	cmdline2 = "rpm -qi " + packageName + " | grep Release | sed -n -e 's/^.*Release.*: //p'"
+	cmdline2 := "rpm -qi " + packageName + " | grep Release | sed -n -e 's/^.*Release.*: //p'"
 	output2, errCmd2 := rpm.run.CommandOutput(cmdline2)
 	if errCmd2 != nil {
 		log.Debugln("runCommandOutput Failed:", errCmd2)
