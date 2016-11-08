@@ -51,7 +51,7 @@ func correctVersionFromRpm(version string) string {
 		return ""
 	}
 
-	index := strings.Index(version, ".el")
+	index := strings.Index(version, "-")
 	if index == -1 {
 		return version
 	}
@@ -102,8 +102,12 @@ func (rpm *Rpm) GetInstalledVersion(packageName string, parseVersion bool) (stri
 		output = ""
 	}
 
-	version := output
+	//this is for REX-Ray and DVDCLI that only use the format 0.2.0
+	//0.2.0-1 -> 0.2.0
+	version := correctVersionFromRpm(output)
 
+	//use the original string but remove anything but the version
+	//2.0-10000.2072.el7 -> 2.0-10000.2072
 	if parseVersion {
 		myVersion, errParse := common.ParseVersionFromFilename(output)
 		if errParse != nil {
