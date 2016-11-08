@@ -50,7 +50,14 @@ func correctVersionFromDeb(version string) string {
 	if len(version) == 0 {
 		return ""
 	}
-	return strings.Replace(version, "-", ".", -1)
+
+	index := strings.Index(version, "-")
+	if index == -1 {
+		return version
+	}
+
+	fixedVersion := version[:index]
+	return fixedVersion
 }
 
 //GetInstalledVersion returns the version of the installed package
@@ -77,9 +84,12 @@ func (deb *Deb) GetInstalledVersion(packageName string, parseVersion bool) (stri
 		output = ""
 	}
 
-	version := output
-	version = correctVersionFromDeb(version)
+	//this is for REX-Ray and DVDCLI that only use the format 0.2.0
+	//0.2.0-1 -> 0.2.0
+	version := correctVersionFromDeb(output)
 
+	//use the original string but remove anything but the version
+	//2.0.10000.2072.Ubuntu.14.04 -> 2.0.10000.2072
 	if parseVersion {
 		myVersion, errParse := common.ParseVersionFromFilename(output)
 		if errParse != nil {
