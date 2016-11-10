@@ -11,6 +11,7 @@ import (
 	run "github.com/dvonthenen/goxplatform/run"
 	str "github.com/dvonthenen/goxplatform/str"
 	sys "github.com/dvonthenen/goxplatform/sys"
+	sinit "github.com/dvonthenen/goxplatform/init"
 )
 
 func init() {
@@ -29,6 +30,7 @@ type XPlatform struct {
 	Nw   *nw.Nw
 	Run  *run.Run
 	Inst *inst.Inst
+	Init *sinit.Init
 }
 
 func new() *XPlatform {
@@ -38,6 +40,7 @@ func new() *XPlatform {
 	myNw := nw.NewNw()
 	myRun := run.NewRun()
 	myInst := inst.NewInst()
+	myInit := sinit.NewInit()
 
 	myXPlatform := &XPlatform{
 		Sys:  mySys,
@@ -46,6 +49,7 @@ func new() *XPlatform {
 		Nw:   myNw,
 		Run:  myRun,
 		Inst: myInst,
+		Init: myInit,
 	}
 
 	return myXPlatform

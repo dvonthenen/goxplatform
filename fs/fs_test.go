@@ -28,8 +28,8 @@ func TestFilenameOnly(t *testing.T) {
 	assert.Equal(t, file, "myfile.deb")
 }
 
-func TestPathFromFullPath(t *testing.T) {
+func TestGetPathFromFullFilename(t *testing.T) {
 	path := "/tmp/dir/myfile.deb"
-	dir := fs.GetPathFileFullFilename(path)
+	dir := fs.GetPathFromFullFilename(path)
 	assert.Equal(t, dir, "/tmp/dir")
 }
