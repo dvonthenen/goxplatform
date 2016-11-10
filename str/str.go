@@ -3,6 +3,7 @@ package str
 import (
 	"errors"
 	"regexp"
+	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -60,4 +61,42 @@ func (str *Str) Trim(line string, col string) string {
 	log.Debugln("Trim LEAVE")
 
 	return tmp
+}
+
+//IsNumeric returns true if numbers only
+func (str *Str) IsNumeric(line string) bool {
+	log.Debugln("IsNumeric ENTER")
+	log.Debugln("line:", line)
+
+	if _, err := strconv.Atoi(line); err == nil {
+		log.Debugln("IsNumeric = TRUE")
+		log.Debugln("IsNumeric LEAVE")
+		return true
+	}
+
+	log.Debugln("IsNumeric = FALSE")
+	log.Debugln("IsNumeric LEAVE")
+	return false
+}
+
+//IsAlpha returns true if is all letter
+func (str *Str) IsAlpha(line string) bool {
+	log.Debugln("IsAlpha ENTER")
+	log.Debugln("line:", line)
+
+	for i := range line {
+		if line[i] < 'A' || line[i] > 'z' {
+			log.Debugln("IsAlpha = FALSE")
+			log.Debugln("IsAlpha LEAVE")
+			return false
+		} else if line[i] > 'Z' && line[i] < 'a' {
+			log.Debugln("IsAlpha = FALSE")
+			log.Debugln("IsAlpha LEAVE")
+			return false
+		}
+	}
+
+	log.Debugln("IsAlpha = TRUE")
+	log.Debugln("IsAlpha LEAVE")
+	return true
 }

@@ -58,19 +58,19 @@ func (fs *Fs) GetFullExePath() (string, error) {
 	return path, nil
 }
 
-//GetPathFileFullFilename returns the parent folder name
-func (fs *Fs) GetPathFileFullFilename(path string) string {
-	log.Debugln("GetPathFileFullFilename ENTER")
+//GetPathFromFullFilename returns the parent folder name
+func (fs *Fs) GetPathFromFullFilename(path string) string {
+	log.Debugln("GetPathFromFullFilename ENTER")
 	log.Debugln("path:", path)
 	last := strings.LastIndex(path, string(filepath.Separator))
 	if last == -1 {
 		log.Debugln("No slash. Return Path:", path)
-		log.Debugln("GetPathFileFullFilename LEAVE")
+		log.Debugln("GetPathFromFullFilename LEAVE")
 		return path
 	}
 	tmp := path[0:last]
 	log.Debugln("Final Path:", tmp)
-	log.Debugln("GetPathFileFullFilename LEAVE")
+	log.Debugln("GetPathFromFullFilename LEAVE")
 	return tmp
 }
 
@@ -83,8 +83,20 @@ func (fs *Fs) GetFullPath() (string, error) {
 	}
 	log.Debugln("EXE path:", path)
 
-	tmp := fs.GetPathFileFullFilename(path)
+	tmp := fs.GetPathFromFullFilename(path)
 	return tmp, nil
+}
+
+//GetFullPathWithExec returns the fullpath of the executable
+func (fs *Fs) GetFullPathWithExec() (string, error) {
+	path, err := os.Readlink("/proc/self/exe")
+	if err != nil {
+		log.Errorln("Readlink failed:", err)
+		return "", nil
+	}
+	log.Debugln("EXE path:", path)
+
+	return path, nil
 }
 
 //GetFilenameFromURIOrFullPath retrieves the filename from an URI
@@ -117,34 +129,34 @@ func (fs *Fs) AppendSlash(path string) string {
 	return path
 }
 
-//FileCopy copies the contents of the src file to the dst file
-func (fs *Fs) FileCopy(src string, dst string) error {
-	log.Debugln("FileCopy ENTER")
+//CopyFile copies the contents of the src file to the dst file
+func (fs *Fs) CopyFile(src string, dst string) error {
+	log.Debugln("CopyFile ENTER")
 	log.Debugln("SRC:", src)
 	log.Debugln("DST:", dst)
 
 	sfi, err := os.Stat(src)
 	if err != nil {
 		log.Debugln("Src Stat Failed:", err)
-		log.Debugln("FileCopy LEAVE")
+		log.Debugln("CopyFile LEAVE")
 		return ErrSrcNotExist
 	}
 	if !sfi.Mode().IsRegular() {
 		//cannot copy non-regular files (e.g., directories, symlinks, devices, etc.)
 		log.Debugln("Src file is not regular")
-		log.Debugln("FileCopy LEAVE")
+		log.Debugln("CopyFile LEAVE")
 		return ErrSrcNotRegularFile
 	}
 	dfi, err := os.Stat(dst)
 	if err == nil {
 		if !(dfi.Mode().IsRegular()) {
 			log.Debugln("Dst file is not regular")
-			log.Debugln("FileCopy LEAVE")
+			log.Debugln("CopyFile LEAVE")
 			return ErrDstNotRegularFile
 		}
 		if os.SameFile(sfi, dfi) {
 			log.Debugln("Src and Dst files are the same")
-			log.Debugln("FileCopy LEAVE")
+			log.Debugln("CopyFile LEAVE")
 			return nil
 		}
 	}
@@ -153,31 +165,31 @@ func (fs *Fs) FileCopy(src string, dst string) error {
 	in, err := os.OpenFile(src, os.O_RDONLY, 0666)
 	if err != nil {
 		log.Debugln("Failed to open SRC file:", err)
-		log.Debugln("FileCopy LEAVE")
+		log.Debugln("CopyFile LEAVE")
 		return err
 	}
 	defer in.Close()
 	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
 	if err != nil {
 		log.Debugln("Failed to open DST file:", err)
-		log.Debugln("FileCopy LEAVE")
+		log.Debugln("CopyFile LEAVE")
 		return err
 	}
 	defer out.Close()
 	if _, err = io.Copy(out, in); err != nil {
 		log.Debugln("Failed to copy file:", err)
-		log.Debugln("FileCopy LEAVE")
+		log.Debugln("CopyFile LEAVE")
 		return err
 	}
 
 	err = out.Sync()
 	if err != nil {
 		log.Debugln("Failed to flush file:", err)
-		log.Debugln("FileCopy LEAVE")
+		log.Debugln("CopyFile LEAVE")
 		return err
 	}
 
-	log.Debugln("File copy succeeded")
-	log.Debugln("FileCopy LEAVE")
+	log.Debugln("CopyFile succeeded")
+	log.Debugln("CopyFile LEAVE")
 	return nil
 }
