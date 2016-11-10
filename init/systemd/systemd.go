@@ -115,7 +115,7 @@ func (sd *SystemD) StatusEx(serviceName string, successRegex string) (bool, erro
 
 //Stop the service
 func (sd *SystemD) Stop(serviceName string) error {
-	return sd.StopEx(serviceName, "TODO")
+	return sd.StopEx(serviceName, "")
 }
 
 //StopEx the service
