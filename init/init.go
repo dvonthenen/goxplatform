@@ -62,7 +62,6 @@ func NewInit() *Init {
 	return myInitSystem
 }
 
-
 //GetInitSystemType returns the Init type on the Operating System
 func (init *Init) GetInitSystemType() int {
 	log.Debugln("getInitSystemType ENTER")
@@ -129,7 +128,7 @@ func (init *Init) RestartEx(serviceName string, successStopRegex string, success
 //Status of the service
 func (init *Init) Status(serviceName string) (bool, error) {
 	if init.init == nil {
-		return ErrInvalidInitSystem
+		return false, ErrInvalidInitSystem
 	}
 
 	return init.init.Status(serviceName)
@@ -138,7 +137,7 @@ func (init *Init) Status(serviceName string) (bool, error) {
 //StatusEx of the service
 func (init *Init) StatusEx(serviceName string, successRegex string) (bool, error) {
 	if init.init == nil {
-		return ErrInvalidInitSystem
+		return false, ErrInvalidInitSystem
 	}
 
 	return init.init.StatusEx(serviceName, successRegex)
