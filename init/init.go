@@ -38,6 +38,31 @@ type Init struct {
 	init common.IInit
 }
 
+//NewInit generates a Init object
+func NewInit() *Init {
+	mySys := sys.NewSys()
+	myRun := run.NewRun()
+
+	myInitSystem := &Init{
+		sys: mySys,
+		run: myRun,
+	}
+
+	var myInit common.IInit
+	switch myInitSystem.GetInitSystemType() {
+	case InitSystemD:
+		myInit = systemd.NewSystemD()
+	case InitUpdateRcD:
+		myInit = initd.NewInitD()
+	case InitChkConfig:
+		myInit = initd.NewInitD()
+	}
+	myInitSystem.init = myInit
+
+	return myInitSystem
+}
+
+
 //GetInitSystemType returns the Init type on the Operating System
 func (init *Init) GetInitSystemType() int {
 	log.Debugln("getInitSystemType ENTER")
@@ -63,30 +88,6 @@ func (init *Init) GetInitSystemType() int {
 	log.Debugln("getInitSystemType = initUnknown")
 	log.Debugln("getInitSystemType LEAVE")
 	return InitUnknown
-}
-
-//NewInit generates a Init object
-func NewInit() *Init {
-	mySys := sys.NewSys()
-	myRun := run.NewRun()
-
-	myInitSystem := &Init{
-		sys: mySys,
-		run: myRun,
-	}
-
-	var myInit common.IInit
-	switch myInitSystem.GetInitSystemType() {
-	case InitSystemD:
-		myInit = systemd.NewSystemD()
-	case InitUpdateRcD:
-		myInit = initd.NewInitD()
-	case InitChkConfig:
-		myInit = initd.NewInitD()
-	}
-	myInitSystem.init = myInit
-
-	return myInitSystem
 }
 
 //Start is the package installed
