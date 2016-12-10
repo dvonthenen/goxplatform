@@ -2,8 +2,10 @@ package systemd
 
 import (
 	"errors"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
+	ini "github.com/go-ini/ini"
 
 	run "github.com/dvonthenen/goxplatform/run"
 )
@@ -48,7 +50,7 @@ func (sd *SystemD) StartEx(serviceName string, successRegex string) error {
 	if len(output) > 0 {
 		log.Debugln("StartEx Failed")
 		log.Debugln("SystemD::StartEx LEAVE")
-		return ErrSystemCtlFailed	
+		return ErrSystemCtlFailed
 	}
 
 	log.Debugln("StartEx Succeeded")
@@ -105,7 +107,7 @@ func (sd *SystemD) StatusEx(serviceName string, successRegex string) (bool, erro
 	if output == "active" {
 		log.Debugln("StatusEx Succeeded")
 		log.Debugln("SystemD::StatusEx LEAVE")
-		return true, nil	
+		return true, nil
 	}
 
 	log.Debugln("StatusEx Failed:", output)
@@ -134,7 +136,7 @@ func (sd *SystemD) StopEx(serviceName string, successRegex string) error {
 	if len(output) > 0 {
 		log.Debugln("StopEx Failed")
 		log.Debugln("SystemD::StopEx LEAVE")
-		return ErrSystemCtlFailed	
+		return ErrSystemCtlFailed
 	}
 
 	log.Debugln("StopEx Succeeded")
@@ -157,7 +159,7 @@ func (sd *SystemD) Enable(serviceName string) error {
 	if output1 == "enabled" {
 		log.Debugln("Enable Succeeded")
 		log.Debugln("SystemD::Enable LEAVE")
-		return nil	
+		return nil
 	}
 
 	cmdLine2 := "systemctl enable " + serviceName
@@ -170,7 +172,7 @@ func (sd *SystemD) Enable(serviceName string) error {
 	if len(output2) > 0 {
 		log.Debugln("Enable Failed")
 		log.Debugln("SystemD::Enable LEAVE")
-		return ErrSystemCtlFailed	
+		return ErrSystemCtlFailed
 	}
 
 	log.Debugln("Enable Succeeded")
@@ -193,7 +195,7 @@ func (sd *SystemD) Disable(serviceName string) error {
 	if output1 == "disabled" {
 		log.Debugln("Disable Succeeded")
 		log.Debugln("SystemD::Disable LEAVE")
-		return nil	
+		return nil
 	}
 
 	cmdLine2 := "systemctl disable " + serviceName
@@ -216,7 +218,7 @@ func doesAfterExist(run *run.Run, serviceName string) bool {
 		return false
 	}
 	if len(output) > 0 {
-		return true	
+		return true
 	}
 	return false
 }
@@ -226,47 +228,51 @@ func (sd *SystemD) AddDependentService(serviceName string, depName string) error
 	log.Debugln("SystemD::AddDependentService ENTER")
 	log.Debugln("serviceName:", serviceName)
 
-	cmdLine1 := "grep -e After=.*" + depName + " /etc/systemd/system/" + serviceName + ".service"
-	output1, err1 := sd.run.CommandOutput(cmdLine1)
-	if err1 != nil {
-		log.Debugln("AddDependentService Failed:", err1)
-		log.Debugln("InitD::AddDependentService LEAVE")
-		return err1
+	iniFile := "/etc/systemd/system/" + serviceName + ".service"
+	cfg, err := ini.Load(iniFile)
+	if err != nil {
+		log.Errorln("Load INI Failed. Err:", err)
+		log.Debugln("SystemD::AddDependentService LEAVE")
+		return err
 	}
-	if len(output1) > 0 {
+
+	key, err := cfg.Section("Unit").GetKey("After")
+	if err != nil {
+		log.Debugln("Key After does not exist. Create one!")
+		_, err = cfg.Section("Unit").NewKey("After", depName)
+		if err != nil {
+			log.Errorln("Failed to create NewKey(After). Err:", err)
+			log.Debugln("SystemD::AddDependentService LEAVE")
+			return err
+		}
+
+		err = cfg.SaveTo(iniFile)
+		if err != nil {
+			log.Errorln("Failed to SaveTo File. Err:", err)
+			log.Debugln("SystemD::AddDependentService LEAVE")
+			return err
+		}
+
 		log.Debugln("AddDependentService Succeeded")
-		log.Debugln("InitD::AddDependentService LEAVE")
-		return nil	
+		log.Debugln("SystemD::AddDependentService LEAVE")
+		return nil
 	}
 
-	if !doesAfterExist(sd.run, serviceName) {
-		cmdLine2 := "sed -i 's/Before=/After=" + depName + ".service\\nBefore=/' /etc/systemd/system/" +
-			serviceName + ".service"
-		output2, err2 := sd.run.CommandOutput(cmdLine2)
-		if err2 != nil {
-			log.Debugln("AddDependentService Failed:", err2)
-			log.Debugln("InitD::AddDependentService LEAVE")
-			return err2
-		}
-		if len(output2) > 0 {
-			log.Errorln("AddDependentService Failed:", output2)
-			log.Debugln("InitD::AddDependentService LEAVE")
-			return ErrSystemCtlFailed
-		}
+	value := key.Value()
+	if strings.Contains(value, serviceName) {
+		log.Debugln("Already contains dependency", serviceName, ". AddDependentService Succeeded")
+		log.Debugln("SystemD::AddDependentService LEAVE")
+		return nil
 	}
 
-	cmdLine2 := "sed -i 's/After=/After=" + depName + ".service /' /etc/systemd/system/" +
-		serviceName + ".service"
-	output2, err2 := sd.run.CommandOutput(cmdLine2)
-	if err2 != nil {
-		log.Errorln("AddDependentService Failed:", err2)
-		log.Debugln("InitD::AddDependentService LEAVE")
-		return err2
-	}
-	if len(output2) > 0 {
-		log.Debugln("AddDependentService Failed")
-		log.Debugln("InitD::AddDependentService LEAVE")
-		return ErrSystemCtlFailed
+	newValue := serviceName + " " + value
+	key.SetValue(newValue)
+
+	err = cfg.SaveTo(iniFile)
+	if err != nil {
+		log.Errorln("Failed to SaveTo File. Err:", err)
+		log.Debugln("SystemD::AddDependentService LEAVE")
+		return err
 	}
 
 	log.Debugln("AddDependentService Succeeded")
@@ -279,31 +285,38 @@ func (sd *SystemD) RemoveDependentService(serviceName string, depName string) er
 	log.Debugln("SystemD::RemoveDependentService ENTER")
 	log.Debugln("serviceName:", serviceName)
 
-	cmdLine1 := "grep -e After=.*" + depName + " /etc/systemd/system/" + serviceName + ".service"
-	output1, err1 := sd.run.CommandOutput(cmdLine1)
-	if err1 != nil {
-		log.Debugln("RemoveDependentService Failed:", err1)
-		log.Debugln("InitD::RemoveDependentService LEAVE")
-		return err1
-	}
-	if len(output1) == 0 {
-		log.Debugln("RemoveDependentService Succeeded")
-		log.Debugln("InitD::RemoveDependentService LEAVE")
-		return nil	
+	iniFile := "/etc/systemd/system/" + serviceName + ".service"
+	cfg, err := ini.Load(iniFile)
+	if err != nil {
+		log.Errorln("Load INI Failed. Err:", err)
+		log.Debugln("SystemD::RemoveDependentService LEAVE")
+		return err
 	}
 
-	cmdLine2 := "sed -i 's/ " + depName + "/ /' /etc/systemd/system/" +
-		serviceName + ".service"
-	output2, err2 := sd.run.CommandOutput(cmdLine2)
-	if err2 != nil {
-		log.Errorln("RemoveDependentService Failed:", err2)
-		log.Debugln("InitD::RemoveDependentService LEAVE")
-		return err2
+	key, err := cfg.Section("Unit").GetKey("After")
+	if err != nil {
+		log.Debugln("RemoveDependentService Succeeded")
+		log.Debugln("SystemD::RemoveDependentService LEAVE")
+		return nil
 	}
-	if len(output2) > 0 {
-		log.Debugln("RemoveDependentService Failed")
-		log.Debugln("InitD::RemoveDependentService LEAVE")
-		return ErrSystemCtlFailed
+
+	value := key.Value()
+	if !strings.Contains(value, serviceName) {
+		log.Debugln("Doesnt contain dependency", serviceName, ". RemoveDependentService Succeeded")
+		log.Debugln("SystemD::RemoveDependentService LEAVE")
+		return nil
+	}
+
+	newValue := strings.Replace(value, " "+serviceName, "", -1)
+	newValue = strings.Replace(newValue, serviceName+" ", "", -1)
+	newValue = strings.Replace(newValue, serviceName, "", -1)
+	key.SetValue(newValue)
+
+	err = cfg.SaveTo(iniFile)
+	if err != nil {
+		log.Errorln("Failed to SaveTo File. Err:", err)
+		log.Debugln("SystemD::RemoveDependentService LEAVE")
+		return err
 	}
 
 	log.Debugln("RemoveDependentService Succeeded")

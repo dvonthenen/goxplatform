@@ -8,3 +8,6 @@ import:
   vcs:     git
 - package: github.com/twinj/uuid
   vcs:     git
+- package: github.com/go-ini/ini
+  ref:     v1.21.1
+  vcs:     git
