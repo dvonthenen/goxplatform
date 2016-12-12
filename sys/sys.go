@@ -219,7 +219,7 @@ func (sys *Sys) GetDeviceList() ([]string, error) {
 
 	list := []string{}
 
-	outputCmd := "fdisk -l | grep /dev/"
+	outputCmd := "fdisk -l | grep \\/dev\\/"
 	output, err := sys.run.CommandOutput(outputCmd)
 	if err != nil {
 		log.Errorln("Failed to get device list. Err:", err)
@@ -234,7 +234,7 @@ func (sys *Sys) GetDeviceList() ([]string, error) {
 			break
 		}
 
-		needles, errRegex := sys.str.RegexMatch(str, "Disk (/dev/.*):")
+		needles, errRegex := sys.str.RegexMatch(str, "Disk (/dev/.*): ")
 		if errRegex != nil {
 			log.Errorln("RegexMatch Failed. Err:", err)
 			log.Debugln("GetDeviceList LEAVE")
