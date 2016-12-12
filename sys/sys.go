@@ -1,7 +1,9 @@
 package sys
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"io/ioutil"
 	"strconv"
 	"strings"
@@ -209,4 +211,82 @@ func (sys *Sys) GetRunningKernelVersion() (string, error) {
 	log.Debugln("GetRunningKernelVersion LEAVE")
 
 	return version, nil
+}
+
+//GetDeviceList returns the list of all devices on the system
+func (sys *Sys) GetDeviceList() ([]string, error) {
+	log.Debugln("GetDeviceList ENTER")
+
+	list := []string{}
+
+	outputCmd := "fdisk -l | grep /dev/"
+	output, err := sys.run.CommandOutput(outputCmd)
+	if err != nil {
+		log.Errorln("Failed to get device list. Err:", err)
+		log.Debugln("GetDeviceList LEAVE")
+		return list, err
+	}
+
+	buffer := bytes.NewBufferString(output)
+	for {
+		str, err := buffer.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+
+		needles, errRegex := sys.str.RegexMatch(str, "Disk (/dev/.*):")
+		if errRegex != nil {
+			log.Errorln("RegexMatch Failed. Err:", err)
+			log.Debugln("GetDeviceList LEAVE")
+			return list, err
+		}
+		device := needles[0]
+		log.Debugln("Device Found:", device)
+
+		list = append(list, device)
+	}
+
+	log.Debugln("GetDeviceList Succeeded. Device Count:", len(list))
+	log.Debugln("GetDeviceList LEAVE")
+
+	return list, nil
+}
+
+//GetInUseDeviceList returns the list of all devices on the system
+func (sys *Sys) GetInUseDeviceList() ([]string, error) {
+	log.Debugln("GetInUseDeviceList ENTER")
+
+	list := []string{}
+
+	outputCmd := "blkid"
+	output, err := sys.run.CommandOutput(outputCmd)
+	if err != nil {
+		log.Errorln("Failed to get blkid list. Err:", err)
+		log.Debugln("GetInUseDeviceList LEAVE")
+		return list, err
+	}
+
+	buffer := bytes.NewBufferString(output)
+	for {
+		str, err := buffer.ReadString('\n')
+		if err == io.EOF {
+			break
+		}
+
+		needles, errRegex := sys.str.RegexMatch(str, "(/dev/.*):")
+		if errRegex != nil {
+			log.Errorln("RegexMatch Failed. Err:", err)
+			log.Debugln("GetInUseDeviceList LEAVE")
+			return list, err
+		}
+		device := needles[0]
+		log.Debugln("Device Found:", device)
+
+		list = append(list, device)
+	}
+
+	log.Debugln("GetInUseDeviceList Succeeded. Device Count:", len(list))
+	log.Debugln("GetInUseDeviceList LEAVE")
+
+	return list, nil
 }
