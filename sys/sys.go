@@ -248,7 +248,7 @@ func (sys *Sys) GetDeviceList() ([]string, error) {
 			continue
 		}
 
-		device := needles[0]
+		device := needles[1]
 		log.Debugln("Device Found:", device)
 
 		list = append(list, device)
