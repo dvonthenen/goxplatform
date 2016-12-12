@@ -3,6 +3,7 @@ package sys
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strconv"
@@ -230,20 +231,31 @@ func (sys *Sys) GetDeviceList() ([]string, error) {
 	buffer := bytes.NewBufferString(output)
 	for {
 		str, err := buffer.ReadString('\n')
-		if err == io.EOF {
-			break
-		}
 
 		needles, errRegex := sys.str.RegexMatch(str, "Disk (/dev/.*): ")
 		if errRegex != nil {
-			log.Errorln("RegexMatch Failed. Err:", err)
-			log.Debugln("GetDeviceList LEAVE")
-			return list, err
+			log.Warnln("RegexMatch Failed. Err:", err)
+			if err == io.EOF {
+				break
+			}
+			continue
 		}
+		if len(needles) != 2 {
+			fmt.Println("Incorrect output size:", len(needles))
+			if err == io.EOF {
+				break
+			}
+			continue
+		}
+
 		device := needles[0]
 		log.Debugln("Device Found:", device)
 
 		list = append(list, device)
+
+		if err == io.EOF {
+			break
+		}
 	}
 
 	log.Debugln("GetDeviceList Succeeded. Device Count:", len(list))
