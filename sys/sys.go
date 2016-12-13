@@ -281,20 +281,31 @@ func (sys *Sys) GetInUseDeviceList() ([]string, error) {
 	buffer := bytes.NewBufferString(output)
 	for {
 		str, err := buffer.ReadString('\n')
-		if err == io.EOF {
-			break
-		}
 
 		needles, errRegex := sys.str.RegexMatch(str, "(/dev/.*):")
 		if errRegex != nil {
 			log.Errorln("RegexMatch Failed. Err:", err)
-			log.Debugln("GetInUseDeviceList LEAVE")
-			return list, err
+			if err == io.EOF {
+				break
+			}
+			continue
 		}
-		device := needles[0]
+		if len(needles) != 2 {
+			fmt.Println("Incorrect output size:", len(needles))
+			if err == io.EOF {
+				break
+			}
+			continue
+		}
+
+		device := needles[1]
 		log.Debugln("Device Found:", device)
 
 		list = append(list, device)
+
+		if err == io.EOF {
+			break
+		}
 	}
 
 	log.Debugln("GetInUseDeviceList Succeeded. Device Count:", len(list))
