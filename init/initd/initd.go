@@ -1,11 +1,15 @@
 package initd
 
 import (
+	"bufio"
 	"errors"
 	"os"
+	"regexp"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 
+	fs "github.com/dvonthenen/goxplatform/fs"
 	run "github.com/dvonthenen/goxplatform/run"
 )
 
@@ -18,18 +22,30 @@ var (
 
 	//ErrDeleteDependencyFailed Failed to remove the dependency from the service
 	ErrDeleteDependencyFailed = errors.New("Failed to remove the dependency from the service")
+
+	//ErrSrcNotExist src file doesnt exist
+	ErrSrcNotExist = errors.New("Source file does not exist")
+
+	//ErrSrcNotRegularFile src file is not a regular file
+	ErrSrcNotRegularFile = errors.New("Source file is not a regular file")
+
+	//ErrDstNotRegularFile dst file is not a regular file
+	ErrDstNotRegularFile = errors.New("Destination file is not a regular file")
 )
 
 //InitD implementation for InitD
 type InitD struct {
 	run *run.Run
+	fs  *fs.Fs
 }
 
 //NewInitD generates a InitD object
 func NewInitD() *InitD {
 	myRun := run.NewRun()
+	myFs := fs.NewFs()
 	myInitD := &InitD{
 		run: myRun,
+		fs:  myFs,
 	}
 	return myInitD
 }
@@ -161,7 +177,7 @@ func (id *InitD) Disable(serviceName string) error {
 	if err != nil {
 		log.Debugln("Disable Failed:", err)
 		log.Debugln("InitD::Disable LEAVE")
-		return err		
+		return err
 	}
 
 	log.Debugln("Disable Succeeded")
@@ -169,35 +185,161 @@ func (id *InitD) Disable(serviceName string) error {
 	return nil
 }
 
+func doesDependencyExist(fileName string, depName string) (bool, error) {
+	log.Debugln("doesDependencyExist ENTER")
+	log.Debugln("fileName:", fileName)
+	log.Debugln("depName:", depName)
+
+	file, err := os.Open(fileName)
+	if err != nil {
+		log.Debugln("Failed on file Open:", err)
+		log.Debugln("doesDependencyExist LEAVE")
+		return false, err
+	}
+	defer file.Close()
+
+	r, err := regexp.Compile(depName)
+	if err != nil {
+		log.Debugln("regexp is invalid")
+		log.Debugln("doesDependencyExist LEAVE")
+		return false, err
+	}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		log.Debugln("Line:", line)
+		if len(line) == 0 {
+			continue
+		}
+
+		strings := r.FindStringSubmatch(line)
+		if strings != nil || len(strings) == 1 {
+			log.Debugln("Match found:", line)
+			log.Debugln("doesDependencyExist LEAVE")
+			return true, nil
+		}
+	}
+
+	log.Debugln("Dependency was not found")
+	log.Debugln("doesDependencyExist LEAVE")
+
+	return false, nil
+}
+
+func makeTmpFileWithNewDep(fileName string, depName string) error {
+	log.Debugln("makeTmpFileWithNewDep ENTER")
+	log.Debugln("fileName:", fileName)
+	log.Debugln("depName:", depName)
+
+	fileNameTmp := "/tmp/" + depName + ".tmp"
+	log.Debugln("fileNameTmp:", fileNameTmp)
+
+	sfi, err := os.Stat(fileName)
+	if err != nil {
+		log.Debugln("Src Stat Failed:", err)
+		log.Debugln("makeTmpFileWithNewDep LEAVE")
+		return ErrSrcNotExist
+	}
+	if !sfi.Mode().IsRegular() {
+		//cannot copy non-regular files (e.g., directories, symlinks, devices, etc.)
+		log.Debugln("Src file is not regular")
+		log.Debugln("makeTmpFileWithNewDep LEAVE")
+		return ErrSrcNotRegularFile
+	}
+	dfi, err := os.Stat(fileNameTmp)
+	if err == nil {
+		if !(dfi.Mode().IsRegular()) {
+			log.Debugln("Dst file is not regular")
+			log.Debugln("makeTmpFileWithNewDep LEAVE")
+			return ErrDstNotRegularFile
+		}
+	}
+
+	//Copy the file
+	in, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
+	if err != nil {
+		log.Debugln("Failed to open SRC file:", err)
+		log.Debugln("makeTmpFileWithNewDep LEAVE")
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(fileNameTmp, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	if err != nil {
+		log.Debugln("Failed to open DST file:", err)
+		log.Debugln("makeTmpFileWithNewDep LEAVE")
+		return err
+	}
+	defer out.Close()
+
+	r, err := regexp.Compile("Required-Start:")
+	if err != nil {
+		log.Debugln("regexp is invalid")
+		log.Debugln("makeTmpFileWithNewDep LEAVE")
+		return err
+	}
+
+	scanner := bufio.NewScanner(in)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		log.Debugln("Line:", line)
+		if len(line) == 0 {
+			continue
+		}
+
+		str := r.FindStringSubmatch(line)
+		if str != nil {
+			log.Debugln("Match found:", line)
+			newLine := line + " scini"
+			out.WriteString(newLine + "\n")
+		} else {
+			out.WriteString(line + "\n")
+		}
+	}
+
+	err = out.Sync()
+	if err != nil {
+		log.Debugln("Failed to flush file:", err)
+		log.Debugln("makeTmpFileWithNewDep LEAVE")
+		return err
+	}
+
+	log.Debugln("makeTmpFileWithNewDep Succeeded")
+	log.Debugln("makeTmpFileWithNewDep LEAVE")
+
+	return nil
+}
+
 //AddDependentService to the service
 func (id *InitD) AddDependentService(serviceName string, depName string) error {
 	log.Debugln("InitD::AddDependentService ENTER")
 	log.Debugln("serviceName:", serviceName)
+	log.Debugln("depName:", depName)
 
-	cmdLine1 := "grep -e Required-Start.*" + depName + " /etc/init.d/" + serviceName
-	output1, err1 := id.run.CommandOutput(cmdLine1)
-	if err1 != nil {
-		log.Debugln("AddDependentService Failed:", err1)
+	found, err := doesDependencyExist("/etc/init.d/"+serviceName, depName)
+	if err != nil {
+		log.Debugln("doesDependencyExist Failed. Err:", err)
 		log.Debugln("InitD::AddDependentService LEAVE")
-		return err1
+		return err
 	}
-	if len(output1) > 0 {
-		log.Debugln("AddDependentService Succeeded")
+	if found {
+		log.Debugln("Dependency already exists!")
 		log.Debugln("InitD::AddDependentService LEAVE")
-		return nil	
+		return nil
 	}
 
-	cmdLine2 := "sed -i 's/# Required-Start: /# Required-Start: " + depName + "/' /etc/init.d/" + serviceName
-	output2, err2 := id.run.CommandOutput(cmdLine2)
-	if err2 != nil {
-		log.Errorln("AddDependentService Failed:", err2)
+	err = makeTmpFileWithNewDep("/etc/init.d/"+serviceName, depName)
+	if err != nil {
+		log.Debugln("makeTmpFileWithNewDep Failed. Err:", err)
 		log.Debugln("InitD::AddDependentService LEAVE")
-		return err2
+		return err
 	}
-	if len(output2) > 0 {
-		log.Debugln("AddDependentService Failed")
+
+	err = id.fs.CopyFile("/tmp/"+serviceName+".tmp", "/etc/init.d/"+serviceName)
+	if err != nil {
+		log.Debugln("CopyFile Failed. Err:", err)
 		log.Debugln("InitD::AddDependentService LEAVE")
-		return ErrAddDependencyFailed
+		return err
 	}
 
 	log.Debugln("AddDependentService Succeeded")
@@ -205,35 +347,121 @@ func (id *InitD) AddDependentService(serviceName string, depName string) error {
 	return nil
 }
 
+func makeTmpFileWithoutNewDep(fileName string, depName string) error {
+	log.Debugln("makeTmpFileWithoutNewDep ENTER")
+	log.Debugln("fileName:", fileName)
+	log.Debugln("depName:", depName)
+
+	fileNameTmp := "/tmp/" + depName + ".tmp"
+	log.Debugln("fileNameTmp:", fileNameTmp)
+
+	sfi, err := os.Stat(fileName)
+	if err != nil {
+		log.Debugln("Src Stat Failed:", err)
+		log.Debugln("makeTmpFileWithoutNewDep LEAVE")
+		return ErrSrcNotExist
+	}
+	if !sfi.Mode().IsRegular() {
+		//cannot copy non-regular files (e.g., directories, symlinks, devices, etc.)
+		log.Debugln("Src file is not regular")
+		log.Debugln("makeTmpFileWithoutNewDep LEAVE")
+		return ErrSrcNotRegularFile
+	}
+	dfi, err := os.Stat(fileNameTmp)
+	if err == nil {
+		if !(dfi.Mode().IsRegular()) {
+			log.Debugln("Dst file is not regular")
+			log.Debugln("makeTmpFileWithoutNewDep LEAVE")
+			return ErrDstNotRegularFile
+		}
+	}
+
+	//Copy the file
+	in, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
+	if err != nil {
+		log.Debugln("Failed to open SRC file:", err)
+		log.Debugln("makeTmpFileWithoutNewDep LEAVE")
+		return err
+	}
+	defer in.Close()
+	out, err := os.OpenFile(fileNameTmp, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	if err != nil {
+		log.Debugln("Failed to open DST file:", err)
+		log.Debugln("makeTmpFileWithoutNewDep LEAVE")
+		return err
+	}
+	defer out.Close()
+
+	r, err := regexp.Compile("Required-Start:")
+	if err != nil {
+		log.Debugln("regexp is invalid")
+		log.Debugln("makeTmpFileWithoutNewDep LEAVE")
+		return err
+	}
+
+	scanner := bufio.NewScanner(in)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		log.Debugln("Line:", line)
+		if len(line) == 0 {
+			continue
+		}
+
+		str := r.FindStringSubmatch(line)
+		if str != nil {
+			log.Debugln("Match found:", line)
+			newLine := strings.Replace(line, " scini", "", -1)
+			newLine = strings.Replace(newLine, "scini ", "", -1)
+			newLine = strings.Replace(newLine, "scini", "", -1)
+			out.WriteString(newLine + "\n")
+		} else {
+			out.WriteString(line + "\n")
+		}
+	}
+
+	err = out.Sync()
+	if err != nil {
+		log.Debugln("Failed to flush file:", err)
+		log.Debugln("makeTmpFileWithoutNewDep LEAVE")
+		return err
+	}
+
+	log.Debugln("makeTmpFileWithoutNewDep Succeeded")
+	log.Debugln("makeTmpFileWithoutNewDep LEAVE")
+
+	return nil
+}
+
 //RemoveDependentService to the service
 func (id *InitD) RemoveDependentService(serviceName string, depName string) error {
 	log.Debugln("InitD::RemoveDependentService ENTER")
 	log.Debugln("serviceName:", serviceName)
+	log.Debugln("depName:", depName)
 
-	cmdLine1 := "grep -e Required-Start.*" + depName + " /etc/init.d/" + serviceName
-	output1, err1 := id.run.CommandOutput(cmdLine1)
-	if err1 != nil {
-		log.Debugln("RemoveDependentService Failed:", err1)
+	found, err := doesDependencyExist("/etc/init.d/"+serviceName, depName)
+	if err != nil {
+		log.Debugln("doesDependencyExist Failed. Err:", err)
 		log.Debugln("InitD::RemoveDependentService LEAVE")
-		return err1
+		return err
 	}
-	if len(output1) == 0 {
-		log.Debugln("RemoveDependentService Succeeded")
+	if !found {
+		log.Debugln("Dependency doesnt exists!")
 		log.Debugln("InitD::RemoveDependentService LEAVE")
-		return nil	
+		return nil
 	}
 
-	cmdLine2 := "sed -i 's/ " + depName + "//' /etc/init.d/" + serviceName
-	output2, err2 := id.run.CommandOutput(cmdLine2)
-	if err2 != nil {
-		log.Errorln("RemoveDependentService Failed:", err2)
+	err = makeTmpFileWithoutNewDep("/etc/init.d/"+serviceName, depName)
+	if err != nil {
+		log.Debugln("makeTmpFileWithoutNewDep Failed. Err:", err)
 		log.Debugln("InitD::RemoveDependentService LEAVE")
-		return err2
+		return err
 	}
-	if len(output2) > 0 {
-		log.Debugln("RemoveDependentService Failed")
+
+	err = id.fs.CopyFile("/tmp/"+serviceName+".tmp", "/etc/init.d/"+serviceName)
+	if err != nil {
+		log.Debugln("CopyFile Failed. Err:", err)
 		log.Debugln("InitD::RemoveDependentService LEAVE")
-		return ErrDeleteDependencyFailed
+		return err
 	}
 
 	log.Debugln("RemoveDependentService Succeeded")

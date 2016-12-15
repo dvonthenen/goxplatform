@@ -131,6 +131,11 @@ func (fs *Fs) AppendSlash(path string) string {
 
 //CopyFile copies the contents of the src file to the dst file
 func (fs *Fs) CopyFile(src string, dst string) error {
+	return fs.CopyFileEx(src, dst, 0666)
+}
+
+//CopyFileEx copies the contents of the src file to the dst file
+func (fs *Fs) CopyFileEx(src string, dst string, mode os.FileMode) error {
 	log.Debugln("CopyFile ENTER")
 	log.Debugln("SRC:", src)
 	log.Debugln("DST:", dst)
@@ -169,7 +174,7 @@ func (fs *Fs) CopyFile(src string, dst string) error {
 		return err
 	}
 	defer in.Close()
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0666)
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_TRUNC|os.O_RDWR, mode)
 	if err != nil {
 		log.Debugln("Failed to open DST file:", err)
 		log.Debugln("CopyFile LEAVE")
