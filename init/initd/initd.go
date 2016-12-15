@@ -185,10 +185,13 @@ func (id *InitD) Disable(serviceName string) error {
 	return nil
 }
 
-func doesDependencyExist(fileName string, depName string) (bool, error) {
+func doesDependencyExist(serviceName string, depName string) (bool, error) {
 	log.Debugln("doesDependencyExist ENTER")
-	log.Debugln("fileName:", fileName)
+	log.Debugln("serviceName:", serviceName)
 	log.Debugln("depName:", depName)
+
+	fileName := "/etc/init.d/" + serviceName
+	log.Debugln("fileName:", fileName)
 
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -227,10 +230,13 @@ func doesDependencyExist(fileName string, depName string) (bool, error) {
 	return false, nil
 }
 
-func makeTmpFileWithNewDep(fileName string, depName string) error {
+func makeTmpFileWithNewDep(serviceName string, depName string) error {
 	log.Debugln("makeTmpFileWithNewDep ENTER")
-	log.Debugln("fileName:", fileName)
+	log.Debugln("serviceName:", serviceName)
 	log.Debugln("depName:", depName)
+
+	fileName := "/etc/init.d/" + serviceName
+	log.Debugln("fileName:", fileName)
 
 	fileNameTmp := "/tmp/" + depName + ".tmp"
 	log.Debugln("fileNameTmp:", fileNameTmp)
@@ -316,7 +322,7 @@ func (id *InitD) AddDependentService(serviceName string, depName string) error {
 	log.Debugln("serviceName:", serviceName)
 	log.Debugln("depName:", depName)
 
-	found, err := doesDependencyExist("/etc/init.d/"+serviceName, depName)
+	found, err := doesDependencyExist(serviceName, depName)
 	if err != nil {
 		log.Debugln("doesDependencyExist Failed. Err:", err)
 		log.Debugln("InitD::AddDependentService LEAVE")
@@ -328,7 +334,7 @@ func (id *InitD) AddDependentService(serviceName string, depName string) error {
 		return nil
 	}
 
-	err = makeTmpFileWithNewDep("/etc/init.d/"+serviceName, depName)
+	err = makeTmpFileWithNewDep(serviceName, depName)
 	if err != nil {
 		log.Debugln("makeTmpFileWithNewDep Failed. Err:", err)
 		log.Debugln("InitD::AddDependentService LEAVE")
@@ -347,10 +353,13 @@ func (id *InitD) AddDependentService(serviceName string, depName string) error {
 	return nil
 }
 
-func makeTmpFileWithoutNewDep(fileName string, depName string) error {
+func makeTmpFileWithoutNewDep(serviceName string, depName string) error {
 	log.Debugln("makeTmpFileWithoutNewDep ENTER")
-	log.Debugln("fileName:", fileName)
+	log.Debugln("serviceName:", serviceName)
 	log.Debugln("depName:", depName)
+
+	fileName := "/etc/init.d/" + serviceName
+	log.Debugln("fileName:", fileName)
 
 	fileNameTmp := "/tmp/" + depName + ".tmp"
 	log.Debugln("fileNameTmp:", fileNameTmp)
@@ -438,7 +447,7 @@ func (id *InitD) RemoveDependentService(serviceName string, depName string) erro
 	log.Debugln("serviceName:", serviceName)
 	log.Debugln("depName:", depName)
 
-	found, err := doesDependencyExist("/etc/init.d/"+serviceName, depName)
+	found, err := doesDependencyExist(serviceName, depName)
 	if err != nil {
 		log.Debugln("doesDependencyExist Failed. Err:", err)
 		log.Debugln("InitD::RemoveDependentService LEAVE")
@@ -450,7 +459,7 @@ func (id *InitD) RemoveDependentService(serviceName string, depName string) erro
 		return nil
 	}
 
-	err = makeTmpFileWithoutNewDep("/etc/init.d/"+serviceName, depName)
+	err = makeTmpFileWithoutNewDep(serviceName, depName)
 	if err != nil {
 		log.Debugln("makeTmpFileWithoutNewDep Failed. Err:", err)
 		log.Debugln("InitD::RemoveDependentService LEAVE")
