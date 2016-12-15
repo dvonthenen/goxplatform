@@ -201,7 +201,7 @@ func doesDependencyExist(serviceName string, depName string) (bool, error) {
 	}
 	defer file.Close()
 
-	r, err := regexp.Compile(depName)
+	r, err := regexp.Compile("Required-Start:.*" + depName)
 	if err != nil {
 		log.Debugln("regexp is invalid")
 		log.Debugln("doesDependencyExist LEAVE")
