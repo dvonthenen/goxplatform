@@ -238,7 +238,7 @@ func makeTmpFileWithNewDep(serviceName string, depName string) error {
 	fileName := "/etc/init.d/" + serviceName
 	log.Debugln("fileName:", fileName)
 
-	fileNameTmp := "/tmp/" + depName + ".tmp"
+	fileNameTmp := "/tmp/" + serviceName + ".tmp"
 	log.Debugln("fileNameTmp:", fileNameTmp)
 
 	sfi, err := os.Stat(fileName)
@@ -361,7 +361,7 @@ func makeTmpFileWithoutNewDep(serviceName string, depName string) error {
 	fileName := "/etc/init.d/" + serviceName
 	log.Debugln("fileName:", fileName)
 
-	fileNameTmp := "/tmp/" + depName + ".tmp"
+	fileNameTmp := "/tmp/" + serviceName + ".tmp"
 	log.Debugln("fileNameTmp:", fileNameTmp)
 
 	sfi, err := os.Stat(fileName)
