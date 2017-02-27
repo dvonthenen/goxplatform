@@ -5,11 +5,9 @@ import (
 	"bytes"
 	"errors"
 	"math"
-	"os"
 	"os/exec"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -341,81 +339,4 @@ func (run *Run) CommandOutput(cmdLine string) (string, error) {
 
 	log.Debugln("CommandOutput LEAVE")
 	return output, err
-}
-
-func createProcess(cmdLine string) error {
-	log.Debugln("createProcess ENTER")
-	log.Debugln("cmdLine:", cmdLine)
-
-	// The Credential fields are used to set UID, GID and attitional GIDS of the process
-	// You need to run the program as root to do this
-	cred := &syscall.Credential{
-		Uid:    rootUID,
-		Gid:    rootGID,
-		Groups: []uint32{},
-	}
-
-	// the Noctty flag is used to detach the process from parent tty
-	sysproc := &syscall.SysProcAttr{
-		Credential: cred,
-		//Noctty: true,
-	}
-
-	attr := os.ProcAttr{
-		Dir: ".",
-		Env: os.Environ(),
-		Files: []*os.File{
-			os.Stdin,
-			os.Stdout,
-			os.Stderr,
-		},
-		Sys: sysproc,
-	}
-
-	args := strings.Split(cmdLine, " ")
-	for i := 0; i < len(args); i++ {
-		log.Debugln("Arg #", i, ":", args[i])
-	}
-
-	log.Debugln("createProcess Before")
-	process, err := os.StartProcess(args[0], args, &attr)
-	log.Debugln("createProcess After")
-
-	if err == nil {
-		// It is not clear from docs, but Realease actually detaches the process
-		err = process.Release()
-		if err == nil {
-			log.Debugln("createProcess succeeded!")
-		} else {
-			log.Errorln("Process Release failed:", err)
-		}
-	} else {
-		log.Errorln("createProcess failed:", err)
-	}
-
-	log.Debugln("createProcess LEAVE")
-	return err
-}
-
-//CreateProcess starts a new detached process
-func (run *Run) CreateProcess(cmdLine string) error {
-	log.Debugln("CreateProcess ENTER")
-	log.Debugln("cmdLine:", cmdLine)
-
-	var err error
-	for i := 0; i < cmdReties; i++ {
-		log.Debugln("CreateProcess attempt #", i+1)
-
-		err = createProcess(cmdLine)
-		if err == nil {
-			log.Debugln("CreateProcess Succeeded")
-			break
-		}
-
-		expDelay := math.Pow(2, float64(i+1))
-		time.Sleep(time.Duration(expDelay) * time.Second)
-	}
-
-	log.Debugln("CreateProcess LEAVE")
-	return err
 }
